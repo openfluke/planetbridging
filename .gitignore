@@ -5,3 +5,13 @@
 /dist/
 *.test
 *.out
+
+# Python dense bedrock
+python/dense/models/
+python/dense/reports/
+python/dense/fixtures/
+python/dense/**/__pycache__/
+python/dense/**/*.pyc
+python/dense/.pytest_cache/
+
+planetbridging

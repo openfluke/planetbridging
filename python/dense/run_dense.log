@@ -1,0 +1,322 @@
+[run_dense] compare-host already running at http://127.0.0.1:9876
+[run_engine] running pytorch in pb-dense-pytorch
+/opt/homebrew/Caskroom/miniconda/base/envs/pb-dense-pytorch/lib/python3.11/site-packages/torch/nn/modules/loss.py:626: UserWarning: Using a target size (torch.Size([64, 4])) that is different to the input size (torch.Size([64, 8])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+  return F.mse_loss(input, target, reduction=self.reduction)
+[pytorch] mlp_32_32_32_8_relu FAILED: The size of tensor a (8) must match the size of tensor b (4) at non-singleton dimension 1
+[pytorch] mlp_32_128_32_8_relu FAILED: The size of tensor a (8) must match the size of tensor b (4) at non-singleton dimension 1
+[pytorch] mlp_32_16_8_no_bias FAILED: The size of tensor a (8) must match the size of tensor b (4) at non-singleton dimension 1
+[pytorch] mlp_32_64_32_16_8_relu FAILED: The size of tensor a (8) must match the size of tensor b (4) at non-singleton dimension 1
+[pytorch] onnx export skipped for linear_16_4: No module named 'onnxscript'
+[pytorch] linear_16_4 ok samples=100 skipped_train=False
+[pytorch] onnx export skipped for linear_32_4: No module named 'onnxscript'
+[pytorch] linear_32_4 ok samples=100 skipped_train=False
+[pytorch] onnx export skipped for mlp_32_16_4_relu: No module named 'onnxscript'
+[pytorch] mlp_32_16_4_relu ok samples=100 skipped_train=False
+[pytorch] onnx export skipped for mlp_32_16_4_tanh: No module named 'onnxscript'
+[pytorch] mlp_32_16_4_tanh ok samples=100 skipped_train=False
+[pytorch] onnx export skipped for mlp_32_16_4_sigmoid: No module named 'onnxscript'
+[pytorch] mlp_32_16_4_sigmoid ok samples=100 skipped_train=False
+[pytorch] onnx export skipped for mlp_64_32_16_4_relu: No module named 'onnxscript'
+[pytorch] mlp_64_32_16_4_relu ok samples=100 skipped_train=False
+[pytorch] onnx export skipped for mlp_128_64_32_16_4_relu: No module named 'onnxscript'
+[pytorch] mlp_128_64_32_16_4_relu ok samples=100 skipped_train=False
+[pytorch] onnx export skipped for mlp_16_16_16_16_4_relu: No module named 'onnxscript'
+[pytorch] mlp_16_16_16_16_4_relu ok samples=100 skipped_train=False
+ERROR conda.cli.main_run:execute(148): `conda run python /Users/openfluke/git/endgame/loom/planetbridging/python/dense/engines/pytorch/run.py --host http://127.0.0.1:9876 --models-dir /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models --manifest /Users/openfluke/git/endgame/loom/planetbridging/python/dense/manifest.yaml` failed. (See above for error)
+[run_dense] engine failed: pytorch (continuing)
+[run_engine] running tensorflow in pb-dense-tensorflow
+Saved artifact at '/Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/tensorflow/linear_16_4/saved_model'. The following endpoints are available:
+
+* Endpoint 'serve'
+  args_0 (POSITIONAL_ONLY): TensorSpec(shape=(None, 16), dtype=tf.float32, name='input')
+Output Type:
+  TensorSpec(shape=(None, 4), dtype=tf.float32, name=None)
+Captures:
+  6082999312: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6082999888: TensorSpec(shape=(), dtype=tf.resource, name=None)
+[tensorflow] linear_16_4 ok samples=100 skipped_train=False
+Saved artifact at '/Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/tensorflow/linear_32_4/saved_model'. The following endpoints are available:
+
+* Endpoint 'serve'
+  args_0 (POSITIONAL_ONLY): TensorSpec(shape=(None, 32), dtype=tf.float32, name='input')
+Output Type:
+  TensorSpec(shape=(None, 4), dtype=tf.float32, name=None)
+Captures:
+  6083000464: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083002192: TensorSpec(shape=(), dtype=tf.resource, name=None)
+[tensorflow] linear_32_4 ok samples=100 skipped_train=False
+Saved artifact at '/Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/tensorflow/mlp_32_16_4_relu/saved_model'. The following endpoints are available:
+
+* Endpoint 'serve'
+  args_0 (POSITIONAL_ONLY): TensorSpec(shape=(None, 32), dtype=tf.float32, name='input')
+Output Type:
+  TensorSpec(shape=(None, 4), dtype=tf.float32, name=None)
+Captures:
+  6083261456: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083249168: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083256656: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083252816: TensorSpec(shape=(), dtype=tf.resource, name=None)
+WARNING:tensorflow:5 out of the last 9 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x16cc562a0> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+WARNING:tensorflow:5 out of the last 9 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x16cc562a0> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+WARNING:tensorflow:6 out of the last 12 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x16cc562a0> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+WARNING:tensorflow:6 out of the last 12 calls to <function TensorFlowTrainer.make_predict_function.<locals>.one_step_on_data_distributed at 0x16cc562a0> triggered tf.function retracing. Tracing is expensive and the excessive number of tracings could be due to (1) creating @tf.function repeatedly in a loop, (2) passing tensors with different shapes, (3) passing Python objects instead of tensors. For (1), please define your @tf.function outside of the loop. For (2), @tf.function has reduce_retracing=True option that can avoid unnecessary retracing. For (3), please refer to https://www.tensorflow.org/guide/function#controlling_retracing and https://www.tensorflow.org/api_docs/python/tf/function for  more details.
+[tensorflow] mlp_32_16_4_relu ok samples=100 skipped_train=False
+Saved artifact at '/Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/tensorflow/mlp_32_16_4_tanh/saved_model'. The following endpoints are available:
+
+* Endpoint 'serve'
+  args_0 (POSITIONAL_ONLY): TensorSpec(shape=(None, 32), dtype=tf.float32, name='input')
+Output Type:
+  TensorSpec(shape=(None, 4), dtype=tf.float32, name=None)
+Captures:
+  6083248592: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083258192: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083253392: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083252432: TensorSpec(shape=(), dtype=tf.resource, name=None)
+[tensorflow] mlp_32_16_4_tanh ok samples=100 skipped_train=False
+Saved artifact at '/Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/tensorflow/mlp_32_16_4_sigmoid/saved_model'. The following endpoints are available:
+
+* Endpoint 'serve'
+  args_0 (POSITIONAL_ONLY): TensorSpec(shape=(None, 32), dtype=tf.float32, name='input')
+Output Type:
+  TensorSpec(shape=(None, 4), dtype=tf.float32, name=None)
+Captures:
+  6083262992: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083261264: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083260304: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083262608: TensorSpec(shape=(), dtype=tf.resource, name=None)
+[tensorflow] mlp_32_16_4_sigmoid ok samples=100 skipped_train=False
+Saved artifact at '/Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/tensorflow/mlp_64_32_16_4_relu/saved_model'. The following endpoints are available:
+
+* Endpoint 'serve'
+  args_0 (POSITIONAL_ONLY): TensorSpec(shape=(None, 64), dtype=tf.float32, name='input')
+Output Type:
+  TensorSpec(shape=(None, 4), dtype=tf.float32, name=None)
+Captures:
+  6083258768: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083250512: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6083258000: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6119716624: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6119705488: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6119704336: TensorSpec(shape=(), dtype=tf.resource, name=None)
+[tensorflow] mlp_32_32_32_8_relu FAILED: Dimensions must be equal, but are 4 and 8 for '{{node compile_loss/mse/sub}} = Sub[T=DT_FLOAT](data_1, mlp_32_32_32_8_relu_1/dense_13_1/BiasAdd)' with input shapes: [?,4], [?,8].
+[tensorflow] mlp_64_32_16_4_relu ok samples=100 skipped_train=False
+Saved artifact at '/Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/tensorflow/mlp_128_64_32_16_4_relu/saved_model'. The following endpoints are available:
+
+* Endpoint 'serve'
+  args_0 (POSITIONAL_ONLY): TensorSpec(shape=(None, 128), dtype=tf.float32, name='input')
+Output Type:
+  TensorSpec(shape=(None, 4), dtype=tf.float32, name=None)
+Captures:
+  6145266256: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145267408: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145268176: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145266640: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145268560: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145268368: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145268944: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145268752: TensorSpec(shape=(), dtype=tf.resource, name=None)
+[tensorflow] mlp_32_128_32_8_relu FAILED: Dimensions must be equal, but are 4 and 8 for '{{node compile_loss/mse/sub}} = Sub[T=DT_FLOAT](data_1, mlp_32_128_32_8_relu_1/dense_20_1/BiasAdd)' with input shapes: [?,4], [?,8].
+[tensorflow] mlp_32_16_8_no_bias FAILED: Dimensions must be equal, but are 4 and 8 for '{{node compile_loss/mse/sub}} = Sub[T=DT_FLOAT](data_1, mlp_32_16_8_no_bias_1/dense_22_1/MatMul)' with input shapes: [?,4], [?,8].
+[tensorflow] mlp_128_64_32_16_4_relu ok samples=100 skipped_train=False
+Saved artifact at '/Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/tensorflow/mlp_16_16_16_16_4_relu/saved_model'. The following endpoints are available:
+
+* Endpoint 'serve'
+  args_0 (POSITIONAL_ONLY): TensorSpec(shape=(None, 16), dtype=tf.float32, name='input')
+Output Type:
+  TensorSpec(shape=(None, 4), dtype=tf.float32, name=None)
+Captures:
+  6145265104: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145270480: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145264144: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145272784: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145263952: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145262416: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145262992: TensorSpec(shape=(), dtype=tf.resource, name=None)
+  6145265872: TensorSpec(shape=(), dtype=tf.resource, name=None)
+[tensorflow] mlp_32_64_32_16_8_relu FAILED: Dimensions must be equal, but are 4 and 8 for '{{node compile_loss/mse/sub}} = Sub[T=DT_FLOAT](data_1, mlp_32_64_32_16_8_relu_1/dense_30_1/BiasAdd)' with input shapes: [?,4], [?,8].
+[tensorflow] mlp_16_16_16_16_4_relu ok samples=100 skipped_train=False
+ERROR conda.cli.main_run:execute(148): `conda run python /Users/openfluke/git/endgame/loom/planetbridging/python/dense/engines/tensorflow/run.py --host http://127.0.0.1:9876 --models-dir /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models --manifest /Users/openfluke/git/endgame/loom/planetbridging/python/dense/manifest.yaml` failed. (See above for error)
+[run_dense] engine failed: tensorflow (continuing)
+[run_engine] running jax in pb-dense-jax
+[jax] linear_16_4 FAILED: Tried to access "kernel" from collection "params" in "/Dense_0" but the collection is empty. (https://flax.readthedocs.io/en/latest/api_reference/flax.errors.html#flax.errors.ScopeCollectionNotFound)
+[jax] linear_32_4 FAILED: Tried to access "kernel" from collection "params" in "/Dense_0" but the collection is empty. (https://flax.readthedocs.io/en/latest/api_reference/flax.errors.html#flax.errors.ScopeCollectionNotFound)
+[jax] mlp_32_16_4_relu FAILED: Tried to access "kernel" from collection "params" in "/Dense_0" but the collection is empty. (https://flax.readthedocs.io/en/latest/api_reference/flax.errors.html#flax.errors.ScopeCollectionNotFound)
+[jax] mlp_32_16_4_tanh FAILED: Tried to access "kernel" from collection "params" in "/Dense_0" but the collection is empty. (https://flax.readthedocs.io/en/latest/api_reference/flax.errors.html#flax.errors.ScopeCollectionNotFound)
+[jax] mlp_32_16_4_sigmoid FAILED: Tried to access "kernel" from collection "params" in "/Dense_0" but the collection is empty. (https://flax.readthedocs.io/en/latest/api_reference/flax.errors.html#flax.errors.ScopeCollectionNotFound)
+[jax] mlp_64_32_16_4_relu FAILED: Tried to access "kernel" from collection "params" in "/Dense_0" but the collection is empty. (https://flax.readthedocs.io/en/latest/api_reference/flax.errors.html#flax.errors.ScopeCollectionNotFound)
+[jax] mlp_32_32_32_8_relu FAILED: sub got incompatible shapes for broadcasting: (64, 8), (64, 4).
+[jax] mlp_128_64_32_16_4_relu FAILED: Tried to access "kernel" from collection "params" in "/Dense_0" but the collection is empty. (https://flax.readthedocs.io/en/latest/api_reference/flax.errors.html#flax.errors.ScopeCollectionNotFound)
+[jax] mlp_32_128_32_8_relu FAILED: sub got incompatible shapes for broadcasting: (64, 8), (64, 4).
+[jax] mlp_32_16_8_no_bias FAILED: sub got incompatible shapes for broadcasting: (64, 8), (64, 4).
+[jax] mlp_16_16_16_16_4_relu FAILED: Tried to access "kernel" from collection "params" in "/Dense_0" but the collection is empty. (https://flax.readthedocs.io/en/latest/api_reference/flax.errors.html#flax.errors.ScopeCollectionNotFound)
+[jax] mlp_32_64_32_16_8_relu FAILED: sub got incompatible shapes for broadcasting: (64, 8), (64, 4).
+ERROR conda.cli.main_run:execute(148): `conda run python /Users/openfluke/git/endgame/loom/planetbridging/python/dense/engines/jax/run.py --host http://127.0.0.1:9876 --models-dir /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models --manifest /Users/openfluke/git/endgame/loom/planetbridging/python/dense/manifest.yaml` failed. (See above for error)
+[run_dense] engine failed: jax (continuing)
+[run_engine] running sklearn in pb-dense-sklearn
+[sklearn] linear_16_4 ok samples=100 skipped_train=True
+[sklearn] linear_32_4 ok samples=100 skipped_train=False
+[sklearn] mlp_32_16_4_relu ok samples=100 skipped_train=True
+[sklearn] mlp_32_16_4_tanh ok samples=100 skipped_train=False
+[sklearn] mlp_32_16_4_sigmoid ok samples=100 skipped_train=False
+[sklearn] mlp_64_32_16_4_relu ok samples=100 skipped_train=False
+[sklearn] mlp_32_32_32_8_relu ok samples=100 skipped_train=False
+[sklearn] mlp_128_64_32_16_4_relu ok samples=100 skipped_train=False
+[sklearn] mlp_32_128_32_8_relu ok samples=100 skipped_train=False
+[sklearn] mlp_32_16_8_no_bias ok samples=100 skipped_train=False
+[sklearn] mlp_16_16_16_16_4_relu ok samples=100 skipped_train=False
+[sklearn] mlp_32_64_32_16_8_relu ok samples=100 skipped_train=False
+[run_engine] running paddle in pb-dense-paddle
+/opt/homebrew/Caskroom/miniconda/base/envs/pb-dense-paddle/lib/python3.11/site-packages/paddle/utils/cpp_extension/extension_utils.py:712: UserWarning: No ccache found. Please be aware that recompiling all source files may be required. You can download and install ccache from: https://github.com/ccache/ccache/blob/master/doc/INSTALL.md
+  warnings.warn(warning_message)
+[paddle] mlp_32_32_32_8_relu FAILED: (InvalidArgument) Broadcast dimension mismatch. Operands could not be broadcast together with the shape of X = [64, 8] and the shape of Y = [64, 4]. Received [8] in X is not equal to [4] in Y at i:1.
+  [Hint: Expected x_dims_array[i] == y_dims_array[i] || (x_dims_array[i] <= 1 && x_dims_array[i] != 0) || (y_dims_array[i] <= 1 && y_dims_array[i] != 0) == true, but received x_dims_array[i] == y_dims_array[i] || (x_dims_array[i] <= 1 && x_dims_array[i] != 0) || (y_dims_array[i] <= 1 && y_dims_array[i] != 0):0 != true:1.] (at /Users/paddle/xly/workspace/0198e482-31c4-4db1-bbd3-f442cc30e680/Paddle/paddle/phi/kernels/funcs/common_shape.h:86)
+
+[paddle] mlp_32_128_32_8_relu FAILED: (InvalidArgument) Broadcast dimension mismatch. Operands could not be broadcast together with the shape of X = [64, 8] and the shape of Y = [64, 4]. Received [8] in X is not equal to [4] in Y at i:1.
+  [Hint: Expected x_dims_array[i] == y_dims_array[i] || (x_dims_array[i] <= 1 && x_dims_array[i] != 0) || (y_dims_array[i] <= 1 && y_dims_array[i] != 0) == true, but received x_dims_array[i] == y_dims_array[i] || (x_dims_array[i] <= 1 && x_dims_array[i] != 0) || (y_dims_array[i] <= 1 && y_dims_array[i] != 0):0 != true:1.] (at /Users/paddle/xly/workspace/0198e482-31c4-4db1-bbd3-f442cc30e680/Paddle/paddle/phi/kernels/funcs/common_shape.h:86)
+
+[paddle] mlp_32_16_8_no_bias FAILED: (InvalidArgument) Broadcast dimension mismatch. Operands could not be broadcast together with the shape of X = [64, 8] and the shape of Y = [64, 4]. Received [8] in X is not equal to [4] in Y at i:1.
+  [Hint: Expected x_dims_array[i] == y_dims_array[i] || (x_dims_array[i] <= 1 && x_dims_array[i] != 0) || (y_dims_array[i] <= 1 && y_dims_array[i] != 0) == true, but received x_dims_array[i] == y_dims_array[i] || (x_dims_array[i] <= 1 && x_dims_array[i] != 0) || (y_dims_array[i] <= 1 && y_dims_array[i] != 0):0 != true:1.] (at /Users/paddle/xly/workspace/0198e482-31c4-4db1-bbd3-f442cc30e680/Paddle/paddle/phi/kernels/funcs/common_shape.h:86)
+
+[paddle] mlp_32_64_32_16_8_relu FAILED: (InvalidArgument) Broadcast dimension mismatch. Operands could not be broadcast together with the shape of X = [64, 8] and the shape of Y = [64, 4]. Received [8] in X is not equal to [4] in Y at i:1.
+  [Hint: Expected x_dims_array[i] == y_dims_array[i] || (x_dims_array[i] <= 1 && x_dims_array[i] != 0) || (y_dims_array[i] <= 1 && y_dims_array[i] != 0) == true, but received x_dims_array[i] == y_dims_array[i] || (x_dims_array[i] <= 1 && x_dims_array[i] != 0) || (y_dims_array[i] <= 1 && y_dims_array[i] != 0):0 != true:1.] (at /Users/paddle/xly/workspace/0198e482-31c4-4db1-bbd3-f442cc30e680/Paddle/paddle/phi/kernels/funcs/common_shape.h:86)
+
+[paddle] linear_16_4 ok samples=100 skipped_train=False
+[paddle] linear_32_4 ok samples=100 skipped_train=False
+[paddle] mlp_32_16_4_relu ok samples=100 skipped_train=False
+[paddle] mlp_32_16_4_tanh ok samples=100 skipped_train=False
+[paddle] mlp_32_16_4_sigmoid ok samples=100 skipped_train=False
+[paddle] mlp_64_32_16_4_relu ok samples=100 skipped_train=False
+[paddle] mlp_128_64_32_16_4_relu ok samples=100 skipped_train=False
+[paddle] mlp_16_16_16_16_4_relu ok samples=100 skipped_train=False
+ERROR conda.cli.main_run:execute(148): `conda run python /Users/openfluke/git/endgame/loom/planetbridging/python/dense/engines/paddle/run.py --host http://127.0.0.1:9876 --models-dir /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models --manifest /Users/openfluke/git/endgame/loom/planetbridging/python/dense/manifest.yaml` failed. (See above for error)
+[run_dense] engine failed: paddle (continuing)
+[run_engine] running onnxruntime in pb-dense-onnxruntime
+[onnxruntime] linear_16_4 FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/linear_16_4/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] linear_32_4 FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/linear_32_4/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_32_16_4_relu FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_32_16_4_relu/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_32_16_4_tanh FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_32_16_4_tanh/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_32_16_4_sigmoid FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_32_16_4_sigmoid/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_64_32_16_4_relu FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_64_32_16_4_relu/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_32_32_32_8_relu FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_32_32_32_8_relu/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_128_64_32_16_4_relu FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_128_64_32_16_4_relu/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_32_128_32_8_relu FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_32_128_32_8_relu/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_32_16_8_no_bias FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_32_16_8_no_bias/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_16_16_16_16_4_relu FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_16_16_16_16_4_relu/model.onnx; run pytorch engine first to export ONNX
+[onnxruntime] mlp_32_64_32_16_8_relu FAILED: missing /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models/pytorch/mlp_32_64_32_16_8_relu/model.onnx; run pytorch engine first to export ONNX
+ERROR conda.cli.main_run:execute(148): `conda run python /Users/openfluke/git/endgame/loom/planetbridging/python/dense/engines/onnxruntime/run.py --host http://127.0.0.1:9876 --models-dir /Users/openfluke/git/endgame/loom/planetbridging/python/dense/models --manifest /Users/openfluke/git/endgame/loom/planetbridging/python/dense/manifest.yaml` failed. (See above for error)
+[run_dense] engine failed: onnxruntime (continuing)
+
+========== comparison summary ==========
+Planet Bridging dense output comparison
+fixture=dense_bedrock_v1 reports=36
+
+model mlp_32_128_32_8_relu (1 engines)
+  - sklearn (1.9.0) samples=100 skipped_train=false
+
+model mlp_32_16_8_no_bias (1 engines)
+  - sklearn (1.9.0) samples=100 skipped_train=false
+
+model mlp_32_32_32_8_relu (1 engines)
+  - sklearn (1.9.0) samples=100 skipped_train=false
+
+model linear_16_4 (4 engines)
+  - paddle (3.3.1) samples=100 skipped_train=false
+  - pytorch (2.11.0) samples=100 skipped_train=false
+  - sklearn (1.9.0) samples=100 skipped_train=true
+  - tensorflow (2.19.1) samples=100 skipped_train=false
+  DIFF paddle vs pytorch max=1.764776e-01 mean=1.894737e-02
+  DIFF paddle vs sklearn max=1.935583e-01 mean=1.241879e-02
+  DIFF paddle vs tensorflow max=2.846439e-01 mean=1.766912e-02
+  DIFF pytorch vs sklearn max=1.958352e-01 mean=1.912473e-02
+  DIFF pytorch vs tensorflow max=2.881624e-01 mean=2.584275e-02
+  DIFF sklearn vs tensorflow max=2.588697e-01 mean=2.057903e-02
+
+model linear_32_4 (4 engines)
+  - paddle (3.3.1) samples=100 skipped_train=false
+  - pytorch (2.11.0) samples=100 skipped_train=false
+  - sklearn (1.9.0) samples=100 skipped_train=false
+  - tensorflow (2.19.1) samples=100 skipped_train=false
+  DIFF paddle vs pytorch max=2.629162e-01 mean=3.066876e-02
+  DIFF paddle vs sklearn max=1.996531e-01 mean=2.081234e-02
+  DIFF paddle vs tensorflow max=2.628323e-01 mean=2.260275e-02
+  DIFF pytorch vs sklearn max=2.612440e-01 mean=2.935654e-02
+  DIFF pytorch vs tensorflow max=5.086833e-01 mean=3.591948e-02
+  DIFF sklearn vs tensorflow max=3.868534e-01 mean=2.579054e-02
+
+model mlp_32_16_4_sigmoid (4 engines)
+  - paddle (3.3.1) samples=100 skipped_train=false
+  - pytorch (2.11.0) samples=100 skipped_train=false
+  - sklearn (1.9.0) samples=100 skipped_train=false
+  - tensorflow (2.19.1) samples=100 skipped_train=false
+  DIFF paddle vs pytorch max=2.148229e-01 mean=2.375960e-02
+  DIFF paddle vs sklearn max=1.832987e-01 mean=2.218223e-02
+  DIFF paddle vs tensorflow max=2.344511e-01 mean=2.380499e-02
+  DIFF pytorch vs sklearn max=1.949073e-01 mean=2.366562e-02
+  DIFF pytorch vs tensorflow max=1.422112e-01 mean=1.797756e-02
+  DIFF sklearn vs tensorflow max=1.973759e-01 mean=2.507820e-02
+
+model mlp_32_64_32_16_8_relu (1 engines)
+  - sklearn (1.9.0) samples=100 skipped_train=false
+
+model mlp_128_64_32_16_4_relu (4 engines)
+  - paddle (3.3.1) samples=100 skipped_train=false
+  - pytorch (2.11.0) samples=100 skipped_train=false
+  - sklearn (1.9.0) samples=100 skipped_train=false
+  - tensorflow (2.19.1) samples=100 skipped_train=false
+  DIFF paddle vs pytorch max=3.576229e-01 mean=3.267277e-02
+  DIFF paddle vs sklearn max=2.418799e-01 mean=3.332790e-02
+  DIFF paddle vs tensorflow max=6.089087e-01 mean=4.835284e-02
+  DIFF pytorch vs sklearn max=3.559990e-01 mean=2.993753e-02
+  DIFF pytorch vs tensorflow max=5.043322e-01 mean=4.757801e-02
+  DIFF sklearn vs tensorflow max=5.974848e-01 mean=5.426650e-02
+
+model mlp_16_16_16_16_4_relu (4 engines)
+  - paddle (3.3.1) samples=100 skipped_train=false
+  - pytorch (2.11.0) samples=100 skipped_train=false
+  - sklearn (1.9.0) samples=100 skipped_train=false
+  - tensorflow (2.19.1) samples=100 skipped_train=false
+  DIFF paddle vs pytorch max=1.025325e-01 mean=1.477205e-02
+  DIFF paddle vs sklearn max=1.119668e-01 mean=1.512573e-02
+  DIFF paddle vs tensorflow max=1.588153e-01 mean=1.986343e-02
+  DIFF pytorch vs sklearn max=1.309992e-01 mean=1.837129e-02
+  DIFF pytorch vs tensorflow max=1.245774e-01 mean=2.073795e-02
+  DIFF sklearn vs tensorflow max=1.106860e-01 mean=1.319019e-02
+
+model mlp_32_16_4_relu (4 engines)
+  - paddle (3.3.1) samples=100 skipped_train=false
+  - pytorch (2.11.0) samples=100 skipped_train=false
+  - sklearn (1.9.0) samples=100 skipped_train=true
+  - tensorflow (2.19.1) samples=100 skipped_train=false
+  DIFF paddle vs pytorch max=2.316897e-01 mean=1.825514e-02
+  DIFF paddle vs sklearn max=2.885084e-01 mean=1.616170e-02
+  DIFF paddle vs tensorflow max=3.008838e-01 mean=1.953767e-02
+  DIFF pytorch vs sklearn max=1.899310e-01 mean=1.815133e-02
+  DIFF pytorch vs tensorflow max=1.909764e-01 mean=2.035250e-02
+  DIFF sklearn vs tensorflow max=1.562799e-01 mean=1.641605e-02
+
+model mlp_32_16_4_tanh (4 engines)
+  - paddle (3.3.1) samples=100 skipped_train=false
+  - pytorch (2.11.0) samples=100 skipped_train=false
+  - sklearn (1.9.0) samples=100 skipped_train=false
+  - tensorflow (2.19.1) samples=100 skipped_train=false
+  DIFF paddle vs pytorch max=1.622946e-01 mean=1.732035e-02
+  DIFF paddle vs sklearn max=2.224763e-01 mean=2.077887e-02
+  DIFF paddle vs tensorflow max=1.376664e-01 mean=1.666266e-02
+  DIFF pytorch vs sklearn max=2.409809e-01 mean=2.489923e-02
+  DIFF pytorch vs tensorflow max=2.548591e-01 mean=2.309195e-02
+  DIFF sklearn vs tensorflow max=2.340612e-01 mean=2.428094e-02
+
+model mlp_64_32_16_4_relu (4 engines)
+  - paddle (3.3.1) samples=100 skipped_train=false
+  - pytorch (2.11.0) samples=100 skipped_train=false
+  - sklearn (1.9.0) samples=100 skipped_train=false
+  - tensorflow (2.19.1) samples=100 skipped_train=false
+  DIFF paddle vs pytorch max=4.039224e-01 mean=2.522052e-02
+  DIFF paddle vs sklearn max=3.525576e-01 mean=2.733811e-02
+  DIFF paddle vs tensorflow max=5.096809e-01 mean=3.857723e-02
+  DIFF pytorch vs sklearn max=3.077448e-01 mean=3.421843e-02
+  DIFF pytorch vs tensorflow max=4.047484e-01 mean=4.480272e-02
+  DIFF sklearn vs tensorflow max=2.840216e-01 mean=3.514933e-02
+
+
+[run_dense] completed with 5 engine failure(s)

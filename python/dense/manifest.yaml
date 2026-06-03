@@ -1,0 +1,102 @@
+fixture_version: dense_bedrock_v2
+seed: 42
+train_samples: 5000
+test_samples: 100
+max_input_dim: 128
+output_dim: 8
+epochs: 40
+batch_size: 64
+learning_rate: 0.01
+
+engines:
+  - id: pytorch
+    enabled: true
+  - id: tensorflow
+    enabled: true
+  - id: jax
+    enabled: true
+  - id: sklearn
+    enabled: true
+  - id: paddle
+    enabled: true
+
+models:
+  - id: linear_16_4
+    input_dim: 16
+    layers:
+      - {units: 4, activation: linear}
+
+  - id: linear_32_4
+    input_dim: 32
+    layers:
+      - {units: 4, activation: linear}
+
+  - id: mlp_32_16_4_relu
+    input_dim: 32
+    layers:
+      - {units: 16, activation: relu}
+      - {units: 4, activation: linear}
+
+  - id: mlp_32_16_4_tanh
+    input_dim: 32
+    layers:
+      - {units: 16, activation: tanh}
+      - {units: 4, activation: linear}
+
+  - id: mlp_32_16_4_sigmoid
+    input_dim: 32
+    layers:
+      - {units: 16, activation: sigmoid}
+      - {units: 4, activation: linear}
+
+  - id: mlp_64_32_16_4_relu
+    input_dim: 64
+    layers:
+      - {units: 32, activation: relu}
+      - {units: 16, activation: relu}
+      - {units: 4, activation: linear}
+
+  - id: mlp_32_32_32_8_relu
+    input_dim: 32
+    layers:
+      - {units: 32, activation: relu}
+      - {units: 32, activation: relu}
+      - {units: 8, activation: linear}
+
+  - id: mlp_128_64_32_16_4_relu
+    input_dim: 128
+    layers:
+      - {units: 64, activation: relu}
+      - {units: 32, activation: relu}
+      - {units: 16, activation: relu}
+      - {units: 4, activation: linear}
+
+  - id: mlp_32_128_32_8_relu
+    input_dim: 32
+    layers:
+      - {units: 128, activation: relu}
+      - {units: 32, activation: relu}
+      - {units: 8, activation: linear}
+
+  - id: mlp_32_16_8_no_bias
+    input_dim: 32
+    bias: false
+    layers:
+      - {units: 16, activation: relu, bias: false}
+      - {units: 8, activation: linear, bias: false}
+
+  - id: mlp_16_16_16_16_4_relu
+    input_dim: 16
+    layers:
+      - {units: 16, activation: relu}
+      - {units: 16, activation: relu}
+      - {units: 16, activation: relu}
+      - {units: 4, activation: linear}
+
+  - id: mlp_32_64_32_16_8_relu
+    input_dim: 32
+    layers:
+      - {units: 64, activation: relu}
+      - {units: 32, activation: relu}
+      - {units: 16, activation: relu}
+      - {units: 8, activation: linear}

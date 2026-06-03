@@ -1,0 +1,11 @@
+name: pb-dense-jax
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pyyaml
+  - jax
+  - jaxlib
+  - flax
+  - optax

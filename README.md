@@ -6,7 +6,35 @@ Each major AI runtime is a "planet" — PyTorch, TensorFlow, llama.cpp, ONNX Run
 
 This repo maps those planets, scopes their file formats, and builds **bidirectional bridges** so models can flow **into Loom**, run on Loom's deterministic volumetric runtime, and flow **back out** to other engines — without abandoning pure Go and zero CGO.
 
+The dense bedrock Python layer is where that fracture is visible day to day: **five conda envs**, incompatible frameworks, shell glue — vs **`go run .`** for the compare host with zero external deps. See [`python/dense/README.md#why-conda-the-python-dependency-problem`](./python/dense/README.md#why-conda-the-python-dependency-problem).
+
 Research and format deep-dives live in [`rnd/`](./rnd/README.md).
+
+---
+
+## Quick start — Dense tab
+
+Each **planet** (TensorFlow, PyTorch, …) trains on the **same shared data**, then we compare steps in that planet's pipeline — not TensorFlow vs PyTorch:
+
+**native** → **export** (SavedModel, ONNX, …) → **loom** (import + infer, coming soon)
+
+**Planet-side bedrock is done** for the current scope — five engines, twelve models, train/skip/report. See [`python/dense/README.md`](./python/dense/README.md) for layout, per-engine artifacts, run observations, conda/dependency reality, and the Go/Loom contrast.
+
+```bash
+cd planetbridging
+
+# 1. Start the compare website (default port 9876)
+go run .
+./killserver.sh                 # stop it when done
+
+# 2. Open http://localhost:9876/
+
+# 3. Train planets and push pipeline reports
+./python/dense/setup_conda.sh   # once
+./python/dense/run_dense.sh     # all engines; starts host if needed
+```
+
+`go run . host` is the same as `go run .`. Flags: `-addr :9876`, `-reports python/dense/reports`.
 
 ---
 
@@ -41,6 +69,8 @@ Research and format deep-dives live in [`rnd/`](./rnd/README.md).
 
 Loom (v0.79) is a pure-Go Deterministic Neural Virtual Machine with native execution for Dense, CNN1/2/3, MHA, LSTM, RNN, and more across **21 DTypes**, with bit-packed **`model.json`** persistence.
 
+**Dtype reality check:** Python planets (PyTorch, TF, JAX, …) train almost exclusively in **FP32** (sklearn: FP64). They do not offer Loom-style per-layer dtype menus. Bedrock compares **float outputs at one precision** — not 21-type parity across engines. See [`python/dense/README.md`](./python/dense/README.md#numerical-types--planets-vs-loom-fml-tier).
+
 | Direction | Status | Detail |
 |-----------|--------|--------|
 | **Loom JSON ↔ Loom** | ✅ Native | Full topology + weights; train, save, reload, infer (all 21 dtypes) |
@@ -56,6 +86,18 @@ Loom (v0.79) is a pure-Go Deterministic Neural Virtual Machine with native execu
 | **Loom → PyTorch / Keras / TFLite** | ⬜ Unexplored | Likely via ONNX or Safetensors as intermediate |
 
 **Goal:** fill the ⬜ cells for the focus layer types above, starting with **Dense + CNN + MHA + RNN + LSTM**.
+
+### Dense bedrock — stage 2 import targets
+
+The Python bedrock has checkpoints on disk; **each format needs a pure-Go importer built from scratch**. Full file list, build order, effort tiers, and **stdlib-only feasibility** (topology + weights without third-party libs): [`python/dense/README.md#pure-go-stdlib-only--topology-and-weights-without-third-party-libs`](./python/dense/README.md#pure-go-stdlib-only--topology-and-weights-without-third-party-libs).
+
+| Priority | Format | Planet | Stdlib-only? |
+|----------|--------|--------|--------------|
+| 1 | `.safetensors` + `manifest.yaml` | PyTorch export | ✅ weights + YAML topology |
+| 2 | `.onnx` | PyTorch export | ✅ subset protobuf + graph |
+| 3 | `.keras` | TensorFlow native | 🟡 topology yes; HDF5 weights hard |
+| 4 | `saved_model/` | TensorFlow export | 🟠 defer |
+| — | `.msgpack` / `.pkl` / `.pdparams` | JAX / sklearn / Paddle | Defer — export to hub first |
 
 ---
 
@@ -237,8 +279,11 @@ TF LSTM          ──►  VolumetricLayer LSTM       ──►  Loom JSON (nat
 
 | Path | Purpose |
 |------|---------|
+| [`host/`](./host/) | Compare dashboard HTTP server (`go run .`) |
+| [`python/dense/`](./python/dense/) | Multi-engine dense bedrock — see [`python/dense/README.md`](./python/dense/README.md) |
+| [`killserver.sh`](./killserver.sh) | Stop compare-host on `:9876` |
 | [`rnd/`](./rnd/) | Automated R&D — format specs, feasibility, source PDFs, consolidated research |
-| *(future)* `bridge/` | Import/export implementations, layer mappers, round-trip tests |
+| *(future)* `bridge/` | Import/export implementations, layer mappers, round-trip tests — **stdlib-only policy** documented in [`python/dense/README.md`](./python/dense/README.md) before build |
 
 ---
 
