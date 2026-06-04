@@ -10,6 +10,8 @@ The dense bedrock Python layer is where that fracture is visible day to day: **f
 
 Research and format deep-dives live in [`rnd/`](./rnd/README.md).
 
+Architecture diagram (Python planets → numerics → Loom, step 1 vs bidirectional endgoal): [`BRIDGE.md`](./BRIDGE.md).
+
 ---
 
 ## Quick start — Dense tab
@@ -282,6 +284,7 @@ TF LSTM          ──►  VolumetricLayer LSTM       ──►  Loom JSON (nat
 | [`host/`](./host/) | Compare dashboard HTTP server (`go run .`) |
 | [`python/dense/`](./python/dense/) | Multi-engine dense bedrock — see [`python/dense/README.md`](./python/dense/README.md) |
 | [`killserver.sh`](./killserver.sh) | Stop compare-host on `:9876` |
+| [`BRIDGE.md`](./BRIDGE.md) | Mermaid diagrams — planets, numerics, Loom hub; step 1 vs bidirectional endgoal |
 | [`rnd/`](./rnd/) | Automated R&D — format specs, feasibility, source PDFs, consolidated research |
 | *(future)* `bridge/` | Import/export implementations, layer mappers, round-trip tests — **stdlib-only policy** documented in [`python/dense/README.md`](./python/dense/README.md) before build |
 
