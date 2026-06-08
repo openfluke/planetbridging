@@ -18,7 +18,7 @@ Architecture diagram (Python planets → numerics → Loom, step 1 vs bidirectio
 
 Each **planet** (TensorFlow, PyTorch, …) trains on the **same shared data**, then we compare steps in that planet's pipeline — not TensorFlow vs PyTorch:
 
-**native** → **export** (SavedModel, ONNX, …) → **loom** (import + infer, coming soon)
+**native** → **export** (SavedModel, ONNX, …) and **loom / entity** (live layer stream) — parallel paths; see [`PROGRESS.md`](./PROGRESS.md)
 
 **Planet-side bedrock is done** for the current scope — five engines, twelve models, train/skip/report. See [`python/dense/README.md`](./python/dense/README.md) for layout, per-engine artifacts, run observations, conda/dependency reality, and the Go/Loom contrast.
 
@@ -286,7 +286,8 @@ TF LSTM          ──►  VolumetricLayer LSTM       ──►  Loom JSON (nat
 | [`killserver.sh`](./killserver.sh) | Stop compare-host on `:9876` |
 | [`BRIDGE.md`](./BRIDGE.md) | Mermaid diagrams — planets, numerics, Loom hub; step 1 vs bidirectional endgoal |
 | [`rnd/`](./rnd/) | Automated R&D — format specs, feasibility, source PDFs, consolidated research |
-| *(future)* `bridge/` | Import/export implementations, layer mappers, round-trip tests — **stdlib-only policy** documented in [`python/dense/README.md`](./python/dense/README.md) before build |
+| [`PROGRESS.md`](./PROGRESS.md) | What works / what does not — updated layer-by-layer |
+| [`bridge/`](./bridge/) | Dense layer stream → `.entity`, fixture load, infer (live stream POC) |
 
 ---
 

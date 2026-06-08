@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -23,6 +25,7 @@ func (s *Server) Handler() http.Handler { return s.mux }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleIndex)
+	s.mux.HandleFunc("GET /PROGRESS.md", s.handleProgress)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("POST /api/v1/report", s.handleReport)
 	s.mux.HandleFunc("GET /api/v1/reports", s.handleReports)
@@ -107,6 +110,22 @@ func (s *Server) handleLoomCatalog(w http.ResponseWriter, _ *http.Request) {
 		"dense":   dash.Dense,
 		"models":  dash.LoomRows,
 	})
+}
+
+func (s *Server) handleProgress(w http.ResponseWriter, _ *http.Request) {
+	path := "PROGRESS.md"
+	if wd, err := os.Getwd(); err == nil {
+		if _, err := os.Stat(filepath.Join(wd, "PROGRESS.md")); err == nil {
+			path = filepath.Join(wd, "PROGRESS.md")
+		}
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write(body)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

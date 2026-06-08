@@ -236,9 +236,11 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     <strong>Same training data per planet.</strong> {{.Fixture.Note}}
   </div>
   <div class="pipeline-hint">
-    Per planet: <strong>native</strong> (train + infer) → <strong>export</strong> (reload saved format) →
-    <strong>loom / entity</strong> (Python streams dense layers to <code>POST /api/v1/loom/stream</code>, Go builds <code>.entity</code>, Loom infers).
+    Per planet: <strong>native</strong> (train + infer) → <strong>export</strong> (reload saved format) and
+    <strong>loom / entity</strong> (Python streams dense layers to <code>POST /api/v1/loom/stream</code>, Go builds <code>.entity</code>, Loom infer) —
+    <em>parallel branches from native</em>, not onnx→safetensors→entity.
     We do <em>not</em> cross-compare TensorFlow vs PyTorch — only steps within each planet's pipeline.
+    See <a href="/PROGRESS.md">PROGRESS.md</a>.
     FP32 drift below {{fp32Tol}} shows as <strong>PASS</strong>.
   </div>
   {{if gt .Loom.EntityFileCount 0}}
@@ -328,6 +330,7 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
   JSON: <a href="/api/v1/compare">/api/v1/compare</a>
   · loom catalog: <a href="/api/v1/loom/catalog">/api/v1/loom/catalog</a>
   · stream: <code>POST /api/v1/loom/stream</code>
+  · progress: <a href="/PROGRESS.md">/PROGRESS.md</a>
 </footer>
 </body>
 </html>`))
