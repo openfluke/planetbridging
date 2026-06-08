@@ -16,7 +16,9 @@ sys.path.insert(0, str(ROOT))
 from shared.artifacts import is_complete, model_dir, write_complete  # noqa: E402
 from shared.fixtures import slice_model_inputs  # noqa: E402
 from shared.manifest import LayerSpec, Manifest, ModelSpec, model_output_dim  # noqa: E402
+from shared.loom_bridge import stream_planet_to_loom  # noqa: E402
 from shared.runner import run_planet  # noqa: E402
+from shared.spec import DEFAULT_HOST  # noqa: E402
 from shared.variants import VariantResult  # noqa: E402
 
 PLANET = "paddle"
@@ -101,14 +103,22 @@ def train_or_load(
     return net, False
 
 
-def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray], models_dir: Path):
+def handler(
+    *,
+    model: ModelSpec,
+    manifest: Manifest,
+    data: dict[str, np.ndarray],
+    models_dir: Path,
+    host: str = DEFAULT_HOST,
+    skip_loom: bool = False,
+):
     net, skipped = train_or_load(
         model=model, manifest=manifest, data=data, models_dir=models_dir
     )
     _, _, x_test, _ = slice_model_inputs(data, model.input_dim, model_output_dim(model))
     with paddle.no_grad():
         out = net(paddle.to_tensor(x_test.astype(np.float32))).numpy()
-    return [
+    results = [
         VariantResult(
             planet=PLANET,
             stage="native",
@@ -118,6 +128,18 @@ def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray]
             train_skipped=skipped,
         )
     ]
+    if not skip_loom:
+        loom = stream_planet_to_loom(
+            host=host,
+            planet=PLANET,
+            model=model,
+            manifest=manifest,
+            net=net,
+            extractor="paddle",
+        )
+        if loom is not None:
+            results.append(loom)
+    return results
 
 
 if __name__ == "__main__":

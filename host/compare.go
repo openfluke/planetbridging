@@ -6,6 +6,9 @@ import (
 	"sort"
 )
 
+// FP32PassTolerance treats tiny float drift (ONNX, Loom entity infer) as pass in the UI.
+const FP32PassTolerance = 1e-5
+
 // PipelineStepDiff compares two steps in the same planet pipeline for one model.
 type PipelineStepDiff struct {
 	Planet      string  `json:"planet"`
@@ -135,7 +138,7 @@ func comparePlanetPipeline(modelID, planet string, steps []Report) []PipelineSte
 				FromStage:  native.Stage,
 				FromFormat: native.Format,
 				ToStage:    "loom",
-				ToFormat:   "loom",
+				ToFormat:   "entity",
 				Pending:    true,
 			})
 		}
@@ -203,6 +206,77 @@ func diffOutputs(a, b [][]float64) (maxDiff, meanDiff float64, exact bool) {
 	return maxDiff, meanDiff, exact
 }
 
+// PipelineCompareLabel returns EXACT, PASS (within tolerance), DIFF, or PENDING.
+func PipelineCompareLabel(d PipelineStepDiff) string {
+	if d.Pending {
+		return "PENDING"
+	}
+	if d.ExactMatch {
+		return "EXACT"
+	}
+	if d.MaxAbsDiff < FP32PassTolerance {
+		return "PASS"
+	}
+	return "DIFF"
+}
+
+// FormatDiffPlain renders an absolute diff as a fixed-point decimal (easier than 5.96e-07).
+func FormatDiffPlain(v float64) string {
+	if v == 0 {
+		return "0"
+	}
+	abs := math.Abs(v)
+	switch {
+	case abs >= 1:
+		return fmt.Sprintf("%.6f", v)
+	case abs >= 0.0001:
+		return fmt.Sprintf("%.8f", v)
+	default:
+		exp := math.Floor(math.Log10(abs))
+		places := int(-exp) + 3
+		if places > 15 {
+			places = 15
+		}
+		return fmt.Sprintf("%.*f", places, v)
+	}
+}
+
+// DiffScaleHint gives a plain-English sense of how big the offset is.
+func DiffScaleHint(v float64) string {
+	if v == 0 {
+		return "identical"
+	}
+	abs := math.Abs(v)
+	switch {
+	case abs < 1e-6:
+		return "~millionth — fp32 rounding noise"
+	case abs < FP32PassTolerance:
+		return "~hundred-thousandth — within PASS tolerance"
+	case abs < 1e-3:
+		return "~thousandth"
+	case abs < 0.01:
+		return "~hundredth (0.0X)"
+	case abs < 0.1:
+		return "~tenth (0.X)"
+	case abs < 1:
+		return "up to ~1.0"
+	default:
+		return "≥1 — large mismatch, investigate"
+	}
+}
+
+// PipelineCompareClass returns a CSS class for the compare row.
+func PipelineCompareClass(d PipelineStepDiff) string {
+	switch PipelineCompareLabel(d) {
+	case "PENDING":
+		return "pending"
+	case "EXACT", "PASS":
+		return "exact"
+	default:
+		return "diff"
+	}
+}
+
 func FormatDenseComparisonText(summary DenseComparisonSummary) string {
 	var b fmtBuilder
 	b.Printf("Planet Bridging dense pipeline comparison\n")
@@ -216,15 +290,11 @@ func FormatDenseComparisonText(summary DenseComparisonSummary) string {
 			}
 			for _, d := range p.Compare {
 				if d.Pending {
-					b.Printf("    PENDING %s/%s → loom\n", d.FromStage, d.FromFormat)
+					b.Printf("    PENDING %s/%s → loom/entity (stream layers)\n", d.FromStage, d.FromFormat)
 					continue
 				}
-				flag := "DIFF"
-				if d.ExactMatch {
-					flag = "EXACT"
-				}
 				b.Printf("    %s %s/%s → %s/%s max=%.6e mean=%.6e\n",
-					flag, d.FromStage, d.FromFormat, d.ToStage, d.ToFormat, d.MaxAbsDiff, d.MeanAbsDiff)
+					PipelineCompareLabel(d), d.FromStage, d.FromFormat, d.ToStage, d.ToFormat, d.MaxAbsDiff, d.MeanAbsDiff)
 			}
 		}
 		b.Printf("\n")

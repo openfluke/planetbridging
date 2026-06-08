@@ -29,7 +29,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/compare", s.handleCompare)
 	s.mux.HandleFunc("GET /api/v1/compare.txt", s.handleCompareText)
 	s.mux.HandleFunc("GET /api/v1/loom/catalog", s.handleLoomCatalog)
-	s.mux.HandleFunc("POST /api/v1/loom/import", s.handleLoomImport)
+	s.mux.HandleFunc("POST /api/v1/loom/import", s.handleLoomImport) // layer stream → .entity
+	s.mux.HandleFunc("POST /api/v1/loom/stream", s.handleLoomImport)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -105,17 +106,6 @@ func (s *Server) handleLoomCatalog(w http.ResponseWriter, _ *http.Request) {
 		"fixture": dash.Fixture,
 		"dense":   dash.Dense,
 		"models":  dash.LoomRows,
-	})
-}
-
-func (s *Server) handleLoomImport(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	writeJSON(w, http.StatusNotImplemented, map[string]string{
-		"status":  "not_implemented",
-		"message": "Loom dense import bridge is not wired yet. Planet outputs are saved for comparison once import lands.",
 	})
 }
 

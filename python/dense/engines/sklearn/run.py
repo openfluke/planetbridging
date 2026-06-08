@@ -16,7 +16,9 @@ sys.path.insert(0, str(ROOT))
 from shared.artifacts import is_complete, model_dir, write_complete  # noqa: E402
 from shared.fixtures import slice_model_inputs  # noqa: E402
 from shared.manifest import Manifest, ModelSpec, model_output_dim  # noqa: E402
+from shared.loom_bridge import stream_planet_to_loom  # noqa: E402
 from shared.runner import run_planet  # noqa: E402
+from shared.spec import DEFAULT_HOST  # noqa: E402
 from shared.variants import VariantResult  # noqa: E402
 
 PLANET = "sklearn"
@@ -80,7 +82,15 @@ def train_or_load(
     return reg, False
 
 
-def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray], models_dir: Path):
+def handler(
+    *,
+    model: ModelSpec,
+    manifest: Manifest,
+    data: dict[str, np.ndarray],
+    models_dir: Path,
+    host: str = DEFAULT_HOST,
+    skip_loom: bool = False,
+):
     reg, skipped = train_or_load(
         model=model, manifest=manifest, data=data, models_dir=models_dir
     )
@@ -88,7 +98,7 @@ def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray]
     out = reg.predict(x_test.astype(np.float64))
     if out.ndim == 1:
         out = out[:, None]
-    return [
+    results = [
         VariantResult(
             planet=PLANET,
             stage="native",
@@ -98,6 +108,18 @@ def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray]
             train_skipped=skipped,
         )
     ]
+    if not skip_loom:
+        loom = stream_planet_to_loom(
+            host=host,
+            planet=PLANET,
+            model=model,
+            manifest=manifest,
+            net=reg,
+            extractor="sklearn",
+        )
+        if loom is not None:
+            results.append(loom)
+    return results
 
 
 if __name__ == "__main__":

@@ -35,6 +35,11 @@ def build_parser(planet: str) -> argparse.ArgumentParser:
         help="train/infer only; do not POST to compare-host",
     )
     p.add_argument(
+        "--skip-loom",
+        action="store_true",
+        help="skip streaming live dense layers to Loom .entity",
+    )
+    p.add_argument(
         "--model",
         action="append",
         dest="models",
@@ -73,6 +78,8 @@ def run_planet(
                 manifest=manifest,
                 data=data,
                 models_dir=args.models_dir,
+                host=args.host,
+                skip_loom=args.skip_loom,
             )
             for v in variants:
                 if not args.skip_report:

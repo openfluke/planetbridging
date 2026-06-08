@@ -38,6 +38,23 @@ func TestCompareDensePipelineNativeToExport(t *testing.T) {
 	}
 }
 
+func TestFormatDiffPlain(t *testing.T) {
+	got := FormatDiffPlain(5.960464e-07)
+	if got != "0.0000005960" {
+		t.Fatalf("expected plain decimal, got %q", got)
+	}
+	if DiffScaleHint(5.960464e-07) != "~millionth — fp32 rounding noise" {
+		t.Fatalf("unexpected hint: %s", DiffScaleHint(5.960464e-07))
+	}
+}
+
+func TestPipelineCompareLabelTolerance(t *testing.T) {
+	label := PipelineCompareLabel(PipelineStepDiff{MaxAbsDiff: 5.96e-7})
+	if label != "PASS" {
+		t.Fatalf("expected PASS within tolerance, got %s", label)
+	}
+}
+
 func TestCompareDensePipelineLoomPending(t *testing.T) {
 	reports := []Report{
 		{Planet: "pytorch", Stage: "native", Format: "pytorch", ModelID: "m1", Outputs: [][]float64{{1}}},

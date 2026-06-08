@@ -15,7 +15,9 @@ sys.path.insert(0, str(ROOT))
 from shared.artifacts import is_complete, model_dir, write_complete  # noqa: E402
 from shared.fixtures import slice_model_inputs  # noqa: E402
 from shared.manifest import LayerSpec, Manifest, ModelSpec, model_output_dim  # noqa: E402
+from shared.loom_bridge import stream_planet_to_loom  # noqa: E402
 from shared.runner import run_planet  # noqa: E402
+from shared.spec import DEFAULT_HOST  # noqa: E402
 from shared.variants import VariantResult  # noqa: E402
 
 PLANET = "tensorflow"
@@ -83,7 +85,15 @@ def infer_saved_model(saved_path: Path, input_dim: int, x: np.ndarray) -> np.nda
     return export_model.predict(x, verbose=0).astype(np.float64)
 
 
-def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray], models_dir: Path):
+def handler(
+    *,
+    model: ModelSpec,
+    manifest: Manifest,
+    data: dict[str, np.ndarray],
+    models_dir: Path,
+    host: str = DEFAULT_HOST,
+    skip_loom: bool = False,
+):
     net, skipped = train_or_load(model=model, manifest=manifest, data=data)
     out_dir = model_dir(PLANET, model.id)
     _, _, x_test, _ = slice_model_inputs(data, model.input_dim, model_output_dim(model))
@@ -114,6 +124,19 @@ def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray]
                 train_skipped=True,
             )
         )
+
+    if not skip_loom:
+        loom = stream_planet_to_loom(
+            host=host,
+            planet=PLANET,
+            model=model,
+            manifest=manifest,
+            net=net,
+            extractor="keras",
+        )
+        if loom is not None:
+            results.append(loom)
+
     return results
 
 

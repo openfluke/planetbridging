@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
 // FixtureInfo documents the shared bedrock dataset all Python engines train on.
@@ -22,7 +23,9 @@ type SavedPlanetModel struct {
 	ModelID          string   `json:"model_id"`
 	FrameworkVersion string   `json:"framework_version"`
 	Artifacts        []string `json:"artifacts"`
+	EntityFiles      []string `json:"entity_files,omitempty"`
 	HasReport        bool     `json:"has_report"`
+	HasLoomReport    bool     `json:"has_loom_report"`
 	Dir              string   `json:"dir"`
 }
 
@@ -37,8 +40,31 @@ type LoomImportRow struct {
 type Dashboard struct {
 	Fixture   FixtureInfo
 	Dense     DenseComparisonSummary
+	Loom      LoomDashboardStats
 	LoomRows  []LoomImportRow
 	ModelsDir string
+}
+
+func computeLoomStats(dense DenseComparisonSummary, rows []LoomImportRow) LoomDashboardStats {
+	var stats LoomDashboardStats
+	for _, row := range rows {
+		for _, p := range row.Planets {
+			stats.EntityFileCount += len(p.EntityFiles)
+			if p.HasLoomReport {
+				stats.LoomReportCount++
+			}
+		}
+	}
+	for _, m := range dense.Models {
+		for _, pipe := range m.Pipelines {
+			for _, d := range pipe.Compare {
+				if d.Pending && d.ToStage == "loom" {
+					stats.PendingLoomSteps++
+				}
+			}
+		}
+	}
+	return stats
 }
 
 func DefaultFixtureInfo() FixtureInfo {
@@ -48,8 +74,15 @@ func DefaultFixtureInfo() FixtureInfo {
 		TrainSamples: 5000,
 		TestSamples:  100,
 		Note: "Each planet trains on the same deterministic X/y, then we compare " +
-			"native → export → Loom import on the same 100 test inputs.",
+			"native → export → loom/entity (live layer stream → .entity → Loom infer) on the same 100 test inputs.",
 	}
+}
+
+// LoomDashboardStats summarizes entity stream progress for the UI header.
+type LoomDashboardStats struct {
+	EntityFileCount  int
+	LoomReportCount  int
+	PendingLoomSteps int
 }
 
 func ScanSavedModels(modelsDir string, reports []Report) ([]LoomImportRow, error) {
@@ -61,12 +94,17 @@ func ScanSavedModels(modelsDir string, reports []Report) ([]LoomImportRow, error
 	}
 
 	reported := map[string]map[string]bool{}
+	loomReported := map[string]map[string]bool{}
 	for _, r := range reports {
 		r.Normalize()
 		if reported[r.ModelID] == nil {
 			reported[r.ModelID] = map[string]bool{}
+			loomReported[r.ModelID] = map[string]bool{}
 		}
 		reported[r.ModelID][r.Planet] = true
+		if r.Stage == "loom" {
+			loomReported[r.ModelID][r.Planet] = true
+		}
 	}
 
 	byModel := map[string][]SavedPlanetModel{}
@@ -102,12 +140,24 @@ func ScanSavedModels(modelsDir string, reports []Report) ([]LoomImportRow, error
 			if err := json.Unmarshal(b, &meta); err != nil {
 				continue
 			}
+			var entityFiles []string
+			entries, err := os.ReadDir(dir)
+			if err == nil {
+				for _, ent := range entries {
+					if !ent.IsDir() && strings.HasSuffix(ent.Name(), ".entity") {
+						entityFiles = append(entityFiles, ent.Name())
+					}
+				}
+				sort.Strings(entityFiles)
+			}
 			byModel[modelID] = append(byModel[modelID], SavedPlanetModel{
 				Engine:           planet,
 				ModelID:          modelID,
 				FrameworkVersion: meta.FrameworkVersion,
 				Artifacts:        meta.Artifacts,
+				EntityFiles:      entityFiles,
 				HasReport:        reported[modelID][planet],
+				HasLoomReport:    loomReported[modelID][planet],
 				Dir:              dir,
 			})
 		}
@@ -152,6 +202,7 @@ func (s *Server) buildDashboard() (Dashboard, error) {
 	return Dashboard{
 		Fixture:   fixture,
 		Dense:     dense,
+		Loom:      computeLoomStats(dense, loomRows),
 		LoomRows:  loomRows,
 		ModelsDir: s.modelsDir,
 	}, nil

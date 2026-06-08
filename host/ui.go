@@ -24,32 +24,37 @@ func (s *Server) handleIndex(w http.ResponseWriter, _ *http.Request) {
 }
 
 var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncMap{
-	"exactClass": func(exact bool, pending bool) string {
-		if pending {
-			return "pending"
-		}
-		if exact {
-			return "exact"
-		}
-		return "diff"
+	"compareClass": func(d PipelineStepDiff) string {
+		return PipelineCompareClass(d)
 	},
-	"exactLabel": func(exact bool, pending bool) string {
-		if pending {
-			return "PENDING"
-		}
-		if exact {
-			return "EXACT"
-		}
-		return "DIFF"
+	"compareLabel": func(d PipelineStepDiff) string {
+		return PipelineCompareLabel(d)
 	},
 	"fmtSci": func(v float64) string {
 		return fmt.Sprintf("%.6e", v)
 	},
+	"fmtDiffPlain": FormatDiffPlain,
+	"fmtDiffHint":  DiffScaleHint,
 	"stepLabel": func(stage, format string) string {
 		if stage == format {
 			return stage
 		}
 		return stage + " / " + format
+	},
+	"stepClass": func(stage string) string {
+		if stage == "loom" {
+			return "loom"
+		}
+		return ""
+	},
+	"toLabel": func(d PipelineStepDiff) string {
+		if d.Pending {
+			return "loom / entity (stream pending)"
+		}
+		return d.ToStage + " / " + d.ToFormat
+	},
+	"fp32Tol": func() string {
+		return fmt.Sprintf("%.0e", FP32PassTolerance)
 	},
 }).Parse(`<!DOCTYPE html>
 <html lang="en">
@@ -139,11 +144,46 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     color: var(--muted);
     font-size: 11px;
   }
+  .loom-stats {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border: 1px solid #3d2e1a;
+    border-radius: 6px;
+    background: rgba(255, 183, 77, 0.06);
+    font-size: 12px;
+    color: var(--loom);
+  }
   .steps span {
     display: inline-block;
     margin-right: 12px;
     color: var(--text);
   }
+  .steps span.loom { color: var(--loom); }
+  .steps .artifact {
+    display: block;
+    margin: 4px 0 6px;
+    color: var(--muted);
+    font-size: 10px;
+    word-break: break-all;
+  }
+  section.loom-catalog {
+    margin-bottom: 28px;
+    border: 1px solid #3d2e1a;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  section.loom-catalog h2 {
+    margin: 0;
+    padding: 14px 18px;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    background: #15120e;
+    color: var(--loom);
+  }
+  .loom-catalog table td.mono { font-size: 11px; color: var(--muted); }
+  .loom-yes { color: var(--exact); }
+  .loom-no { color: var(--muted); }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -168,6 +208,10 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
   .badge.exact { background: rgba(76,175,80,.2); color: var(--exact); }
   .badge.diff { background: rgba(255,183,77,.15); color: var(--diff); }
   .badge.pending { background: rgba(102,102,102,.2); color: #aaa; }
+  .diff-num { line-height: 1.35; }
+  .diff-sci { color: var(--text); }
+  .diff-plain { color: var(--accent); font-size: 11px; }
+  .diff-hint { color: var(--muted); font-size: 10px; font-style: italic; }
   footer {
     padding: 16px 32px;
     border-top: 1px solid var(--border);
@@ -184,17 +228,54 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     fixture <strong>{{.Fixture.Version}}</strong>
     · seed <strong>{{.Fixture.Seed}}</strong>
     · {{.Dense.ReportCount}} pipeline reports
+    · {{.Loom.EntityFileCount}} <code>.entity</code> checkpoints
+    · {{.Loom.LoomReportCount}} loom infer reports
+    · {{.Loom.PendingLoomSteps}} planets pending stream
   </div>
   <div class="fixture-banner">
     <strong>Same training data per planet.</strong> {{.Fixture.Note}}
   </div>
   <div class="pipeline-hint">
-    Per planet: <strong>native</strong> (train + infer) → <strong>export</strong> (reload saved format) → <strong>loom</strong> (import + infer, coming soon).
+    Per planet: <strong>native</strong> (train + infer) → <strong>export</strong> (reload saved format) →
+    <strong>loom / entity</strong> (Python streams dense layers to <code>POST /api/v1/loom/stream</code>, Go builds <code>.entity</code>, Loom infers).
     We do <em>not</em> cross-compare TensorFlow vs PyTorch — only steps within each planet's pipeline.
+    FP32 drift below {{fp32Tol}} shows as <strong>PASS</strong>.
   </div>
+  {{if gt .Loom.EntityFileCount 0}}
+  <div class="loom-stats">
+    Layer stream is live. Re-run <code>./python/dense/run_engine.sh &lt;planet&gt;</code> with the host up to fill pending loom rows.
+  </div>
+  {{end}}
 </header>
 
 <main>
+{{if .LoomRows}}
+<section class="loom-catalog">
+  <h2>Loom entity checkpoints ({{.ModelsDir}})</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Planet</th>
+        <th>.entity</th>
+        <th>Loom report</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .LoomRows}}
+        {{range .Planets}}
+        <tr>
+          <td>{{.ModelID}}</td>
+          <td>{{.Engine}}</td>
+          <td class="mono">{{if .EntityFiles}}{{index .EntityFiles 0}}{{else}}—{{end}}</td>
+          <td>{{if .HasLoomReport}}<span class="loom-yes">✓</span>{{else}}<span class="loom-no">pending</span>{{end}}</td>
+        </tr>
+        {{end}}
+      {{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
 {{if not .Dense.Models}}
   <div class="empty">
     No pipeline reports yet.<br><br>
@@ -210,7 +291,8 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
       <div class="planet-head">{{.Planet}} pipeline</div>
       <div class="steps">
         {{range .Steps}}
-        <span>{{stepLabel .Stage .Format}} ✓</span>
+        <span class="{{stepClass .Stage}}">{{stepLabel .Stage .Format}} ✓</span>
+        {{if eq .Stage "loom"}}{{range .ArtifactPaths}}<span class="artifact">{{.}}</span>{{end}}{{end}}
         {{end}}
       </div>
       <table>
@@ -225,12 +307,12 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
         </thead>
         <tbody>
           {{range .Compare}}
-          <tr class="{{exactClass .ExactMatch .Pending}}">
-            <td><span class="badge {{exactClass .ExactMatch .Pending}}">{{exactLabel .ExactMatch .Pending}}</span></td>
+          <tr class="{{compareClass .}}">
+            <td><span class="badge {{compareClass .}}">{{compareLabel .}}</span></td>
             <td>{{.FromStage}} / {{.FromFormat}}</td>
-            <td>{{if .Pending}}loom (not imported yet){{else}}{{.ToStage}} / {{.ToFormat}}{{end}}</td>
-            <td>{{if .Pending}}—{{else}}{{fmtSci .MaxAbsDiff}}{{end}}</td>
-            <td>{{if .Pending}}—{{else}}{{fmtSci .MeanAbsDiff}}{{end}}</td>
+            <td>{{toLabel .}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MaxAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MaxAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MaxAbsDiff}}</div></div>{{end}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MeanAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MeanAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MeanAbsDiff}}</div></div>{{end}}</td>
           </tr>
           {{end}}
         </tbody>
@@ -244,7 +326,8 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
 
 <footer>
   JSON: <a href="/api/v1/compare">/api/v1/compare</a>
-  · saved models: <a href="/api/v1/loom/catalog">/api/v1/loom/catalog</a>
+  · loom catalog: <a href="/api/v1/loom/catalog">/api/v1/loom/catalog</a>
+  · stream: <code>POST /api/v1/loom/stream</code>
 </footer>
 </body>
 </html>`))

@@ -20,7 +20,9 @@ sys.path.insert(0, str(ROOT))
 from shared.artifacts import is_complete, model_dir, write_complete  # noqa: E402
 from shared.fixtures import slice_model_inputs  # noqa: E402
 from shared.manifest import LayerSpec, Manifest, ModelSpec, model_output_dim  # noqa: E402
+from shared.loom_bridge import stream_planet_to_loom  # noqa: E402
 from shared.runner import run_planet  # noqa: E402
+from shared.spec import DEFAULT_HOST  # noqa: E402
 from shared.variants import VariantResult  # noqa: E402
 
 PLANET = "jax"
@@ -135,7 +137,15 @@ def train_or_load(
     return TrainBundle(module, st), False
 
 
-def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray], models_dir: Path):
+def handler(
+    *,
+    model: ModelSpec,
+    manifest: Manifest,
+    data: dict[str, np.ndarray],
+    models_dir: Path,
+    host: str = DEFAULT_HOST,
+    skip_loom: bool = False,
+):
     bundle, skipped = train_or_load(
         model=model, manifest=manifest, data=data, models_dir=models_dir
     )
@@ -143,7 +153,7 @@ def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray]
         data, model.input_dim, model_output_dim(model)
     )
     out = np.asarray(bundle.apply(jnp.asarray(x_test.astype(np.float32))))
-    return [
+    results = [
         VariantResult(
             planet=PLANET,
             stage="native",
@@ -153,6 +163,19 @@ def handler(*, model: ModelSpec, manifest: Manifest, data: dict[str, np.ndarray]
             train_skipped=skipped,
         )
     ]
+    if not skip_loom:
+        loom = stream_planet_to_loom(
+            host=host,
+            planet=PLANET,
+            model=model,
+            manifest=manifest,
+            net=bundle.module,
+            extractor="jax",
+            params=bundle.state.params,
+        )
+        if loom is not None:
+            results.append(loom)
+    return results
 
 
 if __name__ == "__main__":
