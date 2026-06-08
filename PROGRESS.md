@@ -55,7 +55,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 
 | Loom layer | Bedrock | Planet extractors | Go bridge | Compare UI | Overall |
 |------------|---------|-------------------|-----------|------------|---------|
-| **Dense** | ✅ `python/dense/` · 12×5 | ✅ live extractors | ✅ stream → `.entity` | ✅ dense tab | 🟡 POC |
+| **Dense** | ✅ `python/dense/` · 12×4 planets | ✅ live extractors (no Paddle) | ✅ stream → `.entity` | ✅ dense tab | 🟡 POC |
 | **CNN1** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | **CNN2** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | **CNN3** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -197,7 +197,7 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 
 ## Dense bedrock — per-planet pipeline
 
-Fixture: `dense_bedrock_v2` · seed 42 · 12 model ids · 5 planets.
+Fixture: `dense_bedrock_v2` · seed 42 · 12 model ids · **4 planets** (PyTorch, TensorFlow, JAX, sklearn — Paddle disabled).
 
 ### Export formats (native → checkpoint)
 
@@ -208,7 +208,7 @@ Fixture: `dense_bedrock_v2` · seed 42 · 12 model ids · 5 planets.
 | **TensorFlow** | SavedModel | ✅ EXACT | All 12 models |
 | **JAX** | — | ⬜ | Native infer only; no export step yet |
 | **sklearn** | — | ⬜ | Native infer only; pickle on disk |
-| **Paddle** | — | ⬜ | Native infer only |
+| ~~**Paddle**~~ | — | — | **Disabled** — out of scope |
 
 ### Loom entity (native → layer stream → `.stream.entity`)
 
@@ -216,11 +216,10 @@ Mechanism: Python `extract_*` loops dense layers → JSON `layers[]` → Go `bri
 
 | Planet | Extractor | Stream wired | Loom reports | Status |
 |--------|-----------|--------------|--------------|--------|
-| **PyTorch** | `extract_pytorch_sequential` | ✅ | 1 / 12 | 🟡 `mlp_32_16_4_relu` PASS (~6e-7); rest pending re-run |
-| **TensorFlow** | `extract_keras_dense` | ✅ | 1 / 12 | 🟡 `mlp_32_16_4_relu` — re-verify after host/fixture fixes |
-| **JAX** | `extract_jax_mlp` | ✅ | 0 / 12 | ⬜ run with host up |
-| **sklearn** | `extract_sklearn_mlp` | ✅ | 0 / 12 | ⬜ run with host up |
-| **Paddle** | `extract_paddle_mlp` | ✅ | 0 / 12 | ⬜ run with host up |
+| **PyTorch** | `extract_pytorch_sequential` | ✅ | 12 / 12 | ✅ all PASS (export EXACT) |
+| **TensorFlow** | `extract_keras_dense` | ✅ | 12 / 12 | ✅ all PASS (export EXACT) |
+| **JAX** | `extract_jax_mlp` | ✅ | 12 / 12 | 🟡 10 PASS · 2 DIFF (deeper MLPs) |
+| **sklearn** | `extract_sklearn_mlp` | ✅ | 12 / 12 | 🟡 9 PASS · 3 DIFF (deeper MLPs / no_bias) |
 
 **To fill pending rows:** `go run .` then `./python/dense/run_engine.sh <planet>` (omit `--skip-loom`).
 
@@ -267,7 +266,7 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 - **Host must be restarted** after Go changes (`go run .` or `./killserver.sh` first).
 - **Background `go run` from agents** may get `signal: terminated` — run in your own terminal for long sessions.
 - **fp32 planets vs fp64 Loom** — expect PASS not EXACT on loom rows for PyTorch/TF/JAX/Paddle; sklearn (fp64) may be closer to EXACT.
-- **TensorFlow loom diff** — one run showed ~1.25 max diff; may be stale run — re-run after fixture `io.ReadAll` fix and host restart.
+- **JAX / sklearn loom DIFF** on `mlp_16_16_16_16_4_relu`, `mlp_32_32_32_8_relu`, `mlp_32_16_8_no_bias` (sklearn only) — likely extractor or activation ordering bug; PyTorch + TF PASS on same models.
 - **`.onnx.entity` / `.safetensors.entity` files** — experimental artifacts on disk; not the current compare pipeline and not listed in reports.
 
 ---
@@ -276,8 +275,8 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 
 **Dense (finish step 1):**
 
-1. Re-run all five engines with host up → 60 loom reports (12 × 5).
-2. Document per-model PASS/EXACT/DIFF in the table below as results land.
+1. ~~Re-run all four engines with host up → 48 loom reports (12 × 4).~~ ✅ done (2026-06-09)
+2. Fix JAX + sklearn extractors for the 5 DIFF rows above.
 3. Add file-based importers (safetensors → entity) if we want chain validation without live Python.
 
 **Then layer-by-layer (steps 2–7):**
@@ -294,20 +293,20 @@ Do **not** assume dense stream API generalizes — each layer type gets explicit
 
 ## Per-model loom log (fill in as we go)
 
-| Model ID | PyTorch | TensorFlow | JAX | sklearn | Paddle |
-|----------|---------|------------|-----|---------|--------|
-| `linear_16_4` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `linear_32_4` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_32_16_4_relu` | ✅ PASS | 🟡 verify | ⬜ | ⬜ | ⬜ |
-| `mlp_32_16_4_tanh` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_32_16_4_sigmoid` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_32_16_8_no_bias` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_16_16_16_16_4_relu` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_32_32_32_8_relu` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_32_64_32_16_8_relu` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_32_128_32_8_relu` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_64_32_16_4_relu` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
-| `mlp_128_64_32_16_4_relu` | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| Model ID | PyTorch | TensorFlow | JAX | sklearn |
+|----------|---------|------------|-----|---------|
+| `linear_16_4` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| `linear_32_4` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mlp_32_16_4_relu` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mlp_32_16_4_tanh` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mlp_32_16_4_sigmoid` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mlp_32_16_8_no_bias` | ✅ PASS | ✅ PASS | ✅ PASS | ❌ DIFF |
+| `mlp_16_16_16_16_4_relu` | ✅ PASS | ✅ PASS | ❌ DIFF | ❌ DIFF |
+| `mlp_32_32_32_8_relu` | ✅ PASS | ✅ PASS | ❌ DIFF | ❌ DIFF |
+| `mlp_32_64_32_16_8_relu` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mlp_32_128_32_8_relu` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mlp_64_32_16_4_relu` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mlp_128_64_32_16_4_relu` | ✅ PASS | ✅ PASS | ✅ PASS | ✅ PASS |
 
 ---
 

@@ -29,7 +29,7 @@ start_host_if_needed() {
   echo "[run_dense] starting compare-host at $HOST"
   (
     cd "$REPO_ROOT"
-    go run . -addr ":9876"
+    go run .
   ) &
   HOST_PID=$!
 
@@ -51,7 +51,6 @@ ENGINES=(
   tensorflow
   jax
   sklearn
-  paddle
 )
 
 start_host_if_needed

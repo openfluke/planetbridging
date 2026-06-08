@@ -5,7 +5,7 @@ set -euo pipefail
 ENGINE="${1:-}"
 if [[ -z "$ENGINE" ]]; then
   echo "usage: $0 <engine>" >&2
-  echo "engines: pytorch tensorflow jax sklearn paddle onnxruntime" >&2
+  echo "engines: pytorch tensorflow jax sklearn onnxruntime" >&2
   exit 1
 fi
 

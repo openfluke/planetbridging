@@ -18,7 +18,7 @@ engines:
   - id: sklearn
     enabled: true
   - id: paddle
-    enabled: true
+    enabled: false  # out of scope — focus pytorch, tensorflow, jax, sklearn
 
 models:
   - id: linear_16_4

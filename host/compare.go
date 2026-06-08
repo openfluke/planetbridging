@@ -44,9 +44,9 @@ type DenseComparisonSummary struct {
 }
 
 func CompareDensePipeline(reports []Report) DenseComparisonSummary {
+	reports = filterActiveReports(reports)
 	fixture := ""
 	for i := range reports {
-		reports[i].Normalize()
 		if fixture == "" {
 			fixture = reports[i].FixtureVersion
 		}

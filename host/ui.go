@@ -239,6 +239,7 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     Per planet: <strong>native</strong> (train + infer) → <strong>export</strong> (reload saved format) and
     <strong>loom / entity</strong> (Python streams dense layers to <code>POST /api/v1/loom/stream</code>, Go builds <code>.entity</code>, Loom infer) —
     <em>parallel branches from native</em>, not onnx→safetensors→entity.
+    Planets in scope: <strong>pytorch · tensorflow · jax · sklearn</strong> (paddle disabled).
     We do <em>not</em> cross-compare TensorFlow vs PyTorch — only steps within each planet's pipeline.
     See <a href="/PROGRESS.md">PROGRESS.md</a>.
     FP32 drift below {{fp32Tol}} shows as <strong>PASS</strong>.

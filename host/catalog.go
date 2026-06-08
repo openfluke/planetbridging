@@ -117,6 +117,9 @@ func ScanSavedModels(modelsDir string, reports []Report) ([]LoomImportRow, error
 			continue
 		}
 		planet := eng.Name()
+		if !isActivePlanet(planet) {
+			continue
+		}
 		engineDir := filepath.Join(modelsDir, planet)
 		models, err := os.ReadDir(engineDir)
 		if err != nil {
