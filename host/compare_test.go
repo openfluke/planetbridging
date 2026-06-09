@@ -51,6 +51,30 @@ func TestFormatDiffPlain(t *testing.T) {
 	}
 }
 
+func TestRenderAllComparisonPDF(t *testing.T) {
+	summaries := map[string]DenseComparisonSummary{
+		"dense": {FixtureVersion: "dense_v1", ReportCount: 1, Models: []DenseModelComparison{{ModelID: "m1"}}},
+	}
+	pdf, err := RenderAllComparisonPDF("0.5.0", summaries)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pdf) < 100 || pdf[0] != '%' || pdf[1] != 'P' {
+		t.Fatalf("expected PDF header, got %d bytes", len(pdf))
+	}
+}
+
+func TestFormatBedrockComparisonTextPlainDiff(t *testing.T) {
+	summary := CompareDensePipeline([]Report{
+		{Planet: "pytorch", Stage: "native", Format: "pytorch", ModelID: "m1", Outputs: [][]float64{{1}}},
+		{Planet: "pytorch", Stage: "loom", Format: "entity", ModelID: "m1", Outputs: [][]float64{{1 + 5.96e-7}}},
+	})
+	out := FormatBedrockComparisonText("dense", summary)
+	if !strings.Contains(out, "≈") || !strings.Contains(out, "millionth") {
+		t.Fatalf("expected plain diff in export:\n%s", out)
+	}
+}
+
 func TestFormatAllComparisonText(t *testing.T) {
 	summaries := map[string]DenseComparisonSummary{
 		"dense": {FixtureVersion: "dense_v1", ReportCount: 2, Models: []DenseModelComparison{{ModelID: "m1"}}},

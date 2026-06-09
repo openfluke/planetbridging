@@ -1,2 +1,4 @@
+github.com/go-pdf/fpdf v0.9.0 h1:PPvSaUuo1iMi9KkaAn90NuKi+P4gwMedWPHhj8YlJQw=
+github.com/go-pdf/fpdf v0.9.0/go.mod h1:oO8N111TkmKb9D7VvWGLvLJlaZUQVPM+6V42pp3iV4Y=
 github.com/openfluke/webgpu v0.0.2 h1:pI4NzdyM0fyGCWkb/SKkw+y5VaOkViTWaThYtKaHlIo=
 github.com/openfluke/webgpu v0.0.2/go.mod h1:072J6eEkBj9KgFzMY1RMgscUnu3EfTZsQABObSMZy1c=

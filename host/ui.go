@@ -262,7 +262,7 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     <a href="/?tab=rnn" {{if eq .Tab "rnn"}}class="active"{{end}}>RNN</a>
   </div>
   <div class="header-actions">
-    <a href="/api/v1/export/all.txt" class="export-btn" download="planetbridging-compare-all.txt">Export all tabs → .txt</a>
+    <a href="/api/v1/export/all.pdf" class="export-btn" download="planetbridging-compare-all.pdf">Export all tabs → .pdf</a>
     <span class="export-hint">dense · cnn1 · cnn2 · cnn3 · mha · lstm · rnn — all models &amp; compare rows</span>
   </div>
   {{if eq .Tab "cnn1"}}
@@ -741,7 +741,7 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
 
 <footer>
   JSON: <a href="/api/v1/compare">/api/v1/compare</a>
-  · export: <a href="/api/v1/export/all.txt" download="planetbridging-compare-all.txt">/api/v1/export/all.txt</a>
+  · export: <a href="/api/v1/export/all.pdf" download="planetbridging-compare-all.pdf">/api/v1/export/all.pdf</a>
   · loom catalog: <a href="/api/v1/loom/catalog">/api/v1/loom/catalog</a>
   · stream: <code>POST /api/v1/loom/stream</code>
   · progress: <a href="/PROGRESS.md">/PROGRESS.md</a>

@@ -297,8 +297,12 @@ func FormatBedrockComparisonText(bedrock string, summary DenseComparisonSummary)
 					b.Printf("    PENDING %s/%s → loom/entity (stream layers)\n", d.FromStage, d.FromFormat)
 					continue
 				}
-				b.Printf("    %s %s/%s → %s/%s max=%.6e mean=%.6e\n",
-					PipelineCompareLabel(d), d.FromStage, d.FromFormat, d.ToStage, d.ToFormat, d.MaxAbsDiff, d.MeanAbsDiff)
+				b.Printf("    %s %s/%s → %s/%s\n",
+					PipelineCompareLabel(d), d.FromStage, d.FromFormat, d.ToStage, d.ToFormat)
+				b.Printf("      max %.6e  ≈ %s  (%s)\n",
+					d.MaxAbsDiff, FormatDiffPlain(d.MaxAbsDiff), DiffScaleHint(d.MaxAbsDiff))
+				b.Printf("      mean %.6e  ≈ %s  (%s)\n",
+					d.MeanAbsDiff, FormatDiffPlain(d.MeanAbsDiff), DiffScaleHint(d.MeanAbsDiff))
 			}
 		}
 		b.Printf("\n")
