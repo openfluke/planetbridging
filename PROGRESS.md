@@ -56,7 +56,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 | Loom layer | Bedrock | Planet extractors | Go bridge | Compare UI | Overall |
 |------------|---------|-------------------|-----------|------------|---------|
 | **Dense** | ✅ `python/dense/` · 12×4 planets | ✅ live extractors (no Paddle) | ✅ stream → `.entity` | ✅ dense tab | 🟡 POC |
-| **CNN1** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| **CNN1** | 🟡 `python/cnn1/` · 4 models × 3 planets | 🟡 pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/cnn1` | ✅ cnn1 tab | 🟡 POC |
 | **CNN2** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | **CNN3** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | **MHA** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -93,7 +93,21 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 
 ---
 
-### CNN1 (1D convolution) — ⬜ not started
+### CNN1 (1D convolution) — 🟡 in progress
+
+**Bedrock:** `python/cnn1/` · fixture `cnn1_bedrock_v1` · 4 single-conv models · pytorch / tensorflow / jax.
+
+**Run:** `go run .` then `./python/cnn1/run_cnn1.sh` · UI tab: http://localhost:9876/?tab=cnn1
+
+| Planet | Export | Loom stream | Status |
+|--------|--------|-------------|--------|
+| PyTorch | ONNX | ✅ | ✅ 4/4 PASS |
+| TensorFlow | SavedModel | ✅ | ✅ 4/4 PASS (export EXACT) |
+| JAX | — (native only) | ✅ | ✅ 4/4 PASS |
+
+---
+
+### CNN1 design notes (original plan)
 
 **Loom:** `VolumetricLayer` CNN1 · volumetric grid (e.g. sequence × 1 × 1).
 

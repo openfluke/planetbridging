@@ -1,0 +1,10 @@
+name: pb-cnn1-jax
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pyyaml
+  - jax
+  - optax
+  - flax

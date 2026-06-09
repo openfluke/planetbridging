@@ -36,13 +36,19 @@ type LoomImportRow struct {
 	ReportEngines []string           `json:"report_engines"`
 }
 
-// Dashboard is all data for the dense layer compare UI.
+// Dashboard is all data for the compare UI (dense + cnn1 tabs).
 type Dashboard struct {
-	Fixture   FixtureInfo
-	Dense     DenseComparisonSummary
-	Loom      LoomDashboardStats
-	LoomRows  []LoomImportRow
-	ModelsDir string
+	Tab           string
+	Fixture       FixtureInfo
+	CNN1Fixture   FixtureInfo
+	Dense         DenseComparisonSummary
+	CNN1          DenseComparisonSummary
+	Loom          LoomDashboardStats
+	CNN1Loom      LoomDashboardStats
+	LoomRows      []LoomImportRow
+	CNN1LoomRows  []LoomImportRow
+	ModelsDir     string
+	CNN1ModelsDir string
 }
 
 func computeLoomStats(dense DenseComparisonSummary, rows []LoomImportRow) LoomDashboardStats {
@@ -188,26 +194,50 @@ func ScanSavedModels(modelsDir string, reports []Report) ([]LoomImportRow, error
 	return rows, nil
 }
 
-func (s *Server) buildDashboard() (Dashboard, error) {
-	reports, err := s.store.LoadAll()
-	if err != nil {
-		return Dashboard{}, err
+func (s *Server) buildDashboard(tab string) (Dashboard, error) {
+	if tab == "" {
+		tab = "dense"
 	}
-	dense := SortDenseSummary(CompareDensePipeline(reports))
+	all := s.allReports()
+	denseRep := filterBedrock(all, "dense")
+	cnn1Rep := filterBedrock(all, "cnn1")
+
+	dense := SortDenseSummary(CompareDensePipeline(denseRep))
+	cnn1 := SortDenseSummary(CompareDensePipeline(cnn1Rep))
+
 	fixture := DefaultFixtureInfo()
 	if dense.FixtureVersion != "" {
 		fixture.Version = dense.FixtureVersion
 	}
-	loomRows, err := ScanSavedModels(s.modelsDir, reports)
+	cnn1Fixture := FixtureInfo{
+		Version: "cnn1_bedrock_v1",
+		Seed:    42,
+		Note:    "1D conv bedrock — shared synthetic sequences, planets: pytorch · tensorflow · jax.",
+	}
+	if cnn1.FixtureVersion != "" {
+		cnn1Fixture.Version = cnn1.FixtureVersion
+	}
+
+	denseRows, err := ScanSavedModels(s.denseModelsDir, denseRep)
+	if err != nil {
+		return Dashboard{}, err
+	}
+	cnn1Rows, err := ScanSavedModels(s.cnn1ModelsDir, cnn1Rep)
 	if err != nil {
 		return Dashboard{}, err
 	}
 	return Dashboard{
-		Fixture:   fixture,
-		Dense:     dense,
-		Loom:      computeLoomStats(dense, loomRows),
-		LoomRows:  loomRows,
-		ModelsDir: s.modelsDir,
+		Tab:           tab,
+		Fixture:       fixture,
+		CNN1Fixture:   cnn1Fixture,
+		Dense:         dense,
+		CNN1:          cnn1,
+		Loom:          computeLoomStats(dense, denseRows),
+		CNN1Loom:      computeLoomStats(cnn1, cnn1Rows),
+		LoomRows:      denseRows,
+		CNN1LoomRows:  cnn1Rows,
+		ModelsDir:     s.denseModelsDir,
+		CNN1ModelsDir: s.cnn1ModelsDir,
 	}, nil
 }
 

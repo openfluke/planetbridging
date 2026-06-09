@@ -10,21 +10,7 @@ import (
 	"github.com/openfluke/planetbridging/bridge"
 )
 
-type loomStreamResponse struct {
-	Status      string      `json:"status"`
-	EntityPath  string      `json:"entity_path,omitempty"`
-	LayerCount  int         `json:"layer_count,omitempty"`
-	WeightBytes int         `json:"weight_bytes,omitempty"`
-	OutputDim   int         `json:"output_dim,omitempty"`
-	SampleCount int         `json:"sample_count,omitempty"`
-	Outputs     [][]float64 `json:"outputs,omitempty"`
-	MaxAbsDiff  float64     `json:"max_abs_diff,omitempty"`
-	MeanAbsDiff float64     `json:"mean_abs_diff,omitempty"`
-	ExactMatch  bool        `json:"exact_match,omitempty"`
-	Message     string      `json:"message,omitempty"`
-}
-
-func (s *Server) handleLoomImport(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCNN1Stream(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -35,7 +21,7 @@ func (s *Server) handleLoomImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req bridge.StreamRequest
+	var req bridge.CNN1StreamRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -45,12 +31,12 @@ func (s *Server) handleLoomImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(req.Layers) == 0 {
-		http.Error(w, "layers required (stream dense weights from planet runtime)", http.StatusBadRequest)
+		http.Error(w, "layers required", http.StatusBadRequest)
 		return
 	}
 
-	fixturesDir := filepath.Join("python", "dense", "fixtures")
-	fx, err := bridge.LoadFixture(req.FixtureVersion, fixturesDir)
+	fixturesDir := filepath.Join("python", "cnn1", "fixtures")
+	fx, err := bridge.LoadCNN1Fixture(req.FixtureVersion, fixturesDir)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, loomStreamResponse{
 			Status:  "error",
@@ -59,7 +45,7 @@ func (s *Server) handleLoomImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := bridge.StreamToEntity(req, s.denseModelsDir, fx)
+	result, err := bridge.StreamCNN1ToEntity(req, s.cnn1ModelsDir, fx)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, loomStreamResponse{
 			Status:  "error",
@@ -68,27 +54,27 @@ func (s *Server) handleLoomImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	outDim := 0
-	if len(result.Outputs) > 0 {
+	outDim := req.OutputDim
+	if outDim == 0 && len(result.Outputs) > 0 {
 		outDim = len(result.Outputs[0])
 	}
 
 	report := Report{
-		Bedrock:        "dense",
+		Bedrock:        "cnn1",
 		Planet:         req.Planet,
 		Stage:          "loom",
 		Format:         "entity",
 		Engine:         req.Planet,
 		ModelID:        req.ModelID,
 		FixtureVersion: req.FixtureVersion,
-		InputDim:       req.InputDim,
+		InputDim:       req.SeqLen * req.InputChannels,
 		OutputDim:      outDim,
 		SampleCount:    len(result.Outputs),
 		Outputs:        result.Outputs,
 		ArtifactPaths:  []string{result.EntityPath},
 		TrainSkipped:   true,
 	}
-	if _, err := s.denseStore.Save(report); err != nil {
+	if _, err := s.cnn1Store.Save(report); err != nil {
 		writeJSON(w, http.StatusInternalServerError, loomStreamResponse{
 			Status:  "error",
 			Message: fmt.Sprintf("report save: %v", err),
@@ -106,10 +92,9 @@ func (s *Server) handleLoomImport(w http.ResponseWriter, r *http.Request) {
 		Outputs:     result.Outputs,
 	}
 
-	reports := s.allReports()
-	for _, rep := range reports {
+	for _, rep := range s.allReports() {
 		rep.Normalize()
-		if rep.Planet == req.Planet && rep.ModelID == req.ModelID && rep.Stage == "native" {
+		if rep.Bedrock == "cnn1" && rep.Planet == req.Planet && rep.ModelID == req.ModelID && rep.Stage == "native" {
 			max, mean, exact := diffOutputs(rep.Outputs, result.Outputs)
 			resp.MaxAbsDiff = max
 			resp.MeanAbsDiff = mean

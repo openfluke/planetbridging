@@ -10,15 +10,35 @@ import (
 )
 
 type Server struct {
-	store     *Store
-	modelsDir string
-	mux       *http.ServeMux
+	denseStore     *Store
+	cnn1Store      *Store
+	denseModelsDir string
+	cnn1ModelsDir  string
+	mux            *http.ServeMux
 }
 
-func NewServer(store *Store, modelsDir string) *Server {
-	s := &Server{store: store, modelsDir: modelsDir, mux: http.NewServeMux()}
+func NewServer(denseStore, cnn1Store *Store, denseModelsDir, cnn1ModelsDir string) *Server {
+	s := &Server{
+		denseStore:     denseStore,
+		cnn1Store:      cnn1Store,
+		denseModelsDir: denseModelsDir,
+		cnn1ModelsDir:  cnn1ModelsDir,
+		mux:            http.NewServeMux(),
+	}
 	s.routes()
 	return s
+}
+
+func (s *Server) allReports() []Report {
+	dense, _ := s.denseStore.LoadAll()
+	for i := range dense {
+		dense[i].Bedrock = "dense"
+	}
+	cnn1, _ := s.cnn1Store.LoadAll()
+	for i := range cnn1 {
+		cnn1[i].Bedrock = "cnn1"
+	}
+	return append(dense, cnn1...)
 }
 
 func (s *Server) Handler() http.Handler { return s.mux }
@@ -30,10 +50,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/report", s.handleReport)
 	s.mux.HandleFunc("GET /api/v1/reports", s.handleReports)
 	s.mux.HandleFunc("GET /api/v1/compare", s.handleCompare)
+	s.mux.HandleFunc("GET /api/v1/compare/cnn1", s.handleCompareCNN1)
 	s.mux.HandleFunc("GET /api/v1/compare.txt", s.handleCompareText)
 	s.mux.HandleFunc("GET /api/v1/loom/catalog", s.handleLoomCatalog)
-	s.mux.HandleFunc("POST /api/v1/loom/import", s.handleLoomImport) // layer stream → .entity
+	s.mux.HandleFunc("POST /api/v1/loom/import", s.handleLoomImport)
 	s.mux.HandleFunc("POST /api/v1/loom/stream", s.handleLoomImport)
+	s.mux.HandleFunc("POST /api/v1/loom/stream/cnn1", s.handleCNN1Stream)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -63,7 +85,11 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 	if report.SampleCount == 0 {
 		report.SampleCount = len(report.Outputs)
 	}
-	path, err := s.store.Save(report)
+	store := s.denseStore
+	if report.Bedrock == "cnn1" {
+		store = s.cnn1Store
+	}
+	path, err := store.Save(report)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -72,35 +98,39 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleReports(w http.ResponseWriter, _ *http.Request) {
-	reports, err := s.store.LoadAll()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	writeJSON(w, http.StatusOK, reports)
+	writeJSON(w, http.StatusOK, s.allReports())
 }
 
 func (s *Server) handleCompare(w http.ResponseWriter, _ *http.Request) {
-	reports, err := s.store.LoadAll()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	writeJSON(w, http.StatusOK, CompareReports(reports))
+	writeJSON(w, http.StatusOK, CompareReports(filterBedrock(s.allReports(), "dense")))
 }
 
-func (s *Server) handleCompareText(w http.ResponseWriter, _ *http.Request) {
-	reports, err := s.store.LoadAll()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func (s *Server) handleCompareCNN1(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, CompareReports(filterBedrock(s.allReports(), "cnn1")))
+}
+
+func (s *Server) handleCompareText(w http.ResponseWriter, r *http.Request) {
+	bedrock := r.URL.Query().Get("bedrock")
+	if bedrock == "" {
+		bedrock = "dense"
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte(FormatComparisonText(CompareReports(reports))))
+	_, _ = w.Write([]byte(FormatComparisonText(CompareReports(filterBedrock(s.allReports(), bedrock)))))
+}
+
+func filterBedrock(reports []Report, bedrock string) []Report {
+	var out []Report
+	for _, r := range reports {
+		r.Normalize()
+		if r.Bedrock == bedrock {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 func (s *Server) handleLoomCatalog(w http.ResponseWriter, _ *http.Request) {
-	dash, err := s.buildDashboard()
+	dash, err := s.buildDashboard("dense")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

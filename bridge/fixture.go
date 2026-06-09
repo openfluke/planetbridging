@@ -39,12 +39,11 @@ func SliceTestInputs(fx *Fixture, inputDim int) [][]float64 {
 	return out
 }
 
-func npzReadArray(npz []byte, name string) ([][]float64, error) {
-	zr, err := zip.NewReader(bytes.NewReader(npz), int64(len(npz)))
-	if err != nil {
-		return nil, err
-	}
-	var raw []byte
+func openNPZ(npz []byte) (*zip.Reader, error) {
+	return zip.NewReader(bytes.NewReader(npz), int64(len(npz)))
+}
+
+func readNPZEntry(zr *zip.Reader, name string) ([]byte, error) {
 	for _, f := range zr.File {
 		if f.Name != name+".npy" {
 			continue
@@ -58,11 +57,19 @@ func npzReadArray(npz []byte, name string) ([][]float64, error) {
 		if err != nil {
 			return nil, err
 		}
-		raw = buf
-		break
+		return buf, nil
 	}
-	if raw == nil {
-		return nil, fmt.Errorf("npz: missing %s.npy", name)
+	return nil, fmt.Errorf("npz: missing %s.npy", name)
+}
+
+func npzReadArray(npz []byte, name string) ([][]float64, error) {
+	zr, err := openNPZ(npz)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := readNPZEntry(zr, name)
+	if err != nil {
+		return nil, err
 	}
 	flat, shape, err := parseNPYFloat64(raw)
 	if err != nil {

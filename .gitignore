@@ -3,15 +3,18 @@
 # Go
 /bin/
 /dist/
+/planetbridging
 *.test
 *.out
 
-# Python dense bedrock
-python/dense/models/
-python/dense/reports/
-python/dense/fixtures/
-python/dense/**/__pycache__/
-python/dense/**/*.pyc
-python/dense/.pytest_cache/
+# Python bedrock artifacts (dense, cnn1, future layer bedrocks)
+python/*/models/
+python/*/reports/
+python/*/fixtures/
+python/**/__pycache__/
+python/**/*.pyc
+python/**/.pytest_cache/
+python/**/*.log
 
-planetbridging
+# Conda env export sidecars (created during env create)
+python/**/condaenv.*.requirements.txt

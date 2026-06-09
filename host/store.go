@@ -13,6 +13,7 @@ import (
 
 // Report is one pipeline step forward pass on the shared 100-sample fixture.
 type Report struct {
+	Bedrock          string      `json:"bedrock,omitempty"` // dense | cnn1
 	Planet           string      `json:"planet"`
 	Stage            string      `json:"stage"`
 	Format           string      `json:"format"`
@@ -30,6 +31,9 @@ type Report struct {
 }
 
 func (r *Report) Normalize() {
+	if r.Bedrock == "" {
+		r.Bedrock = "dense"
+	}
 	if r.Planet == "" {
 		r.Planet = r.Engine
 	}

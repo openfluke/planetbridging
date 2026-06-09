@@ -32,15 +32,20 @@ func main() {
 
 func runHost() {
 	addr := flag.String("addr", ":9876", "listen address")
-	reportsDir := flag.String("reports", defaultReportsDir(), "directory for JSON reports")
+	denseReports := flag.String("reports", defaultDenseReportsDir(), "dense JSON reports dir")
+	cnn1Reports := flag.String("cnn1-reports", defaultCNN1ReportsDir(), "cnn1 JSON reports dir")
 	flag.Parse()
 
-	store, err := host.NewStore(*reportsDir)
+	denseStore, err := host.NewStore(*denseReports)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cnn1Store, err := host.NewStore(*cnn1Reports)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	srv := host.NewServer(store, defaultModelsDir())
+	srv := host.NewServer(denseStore, cnn1Store, defaultDenseModelsDir(), defaultCNN1ModelsDir())
 	log.Printf("planetbridging host listening on %s", *addr)
 	log.Printf("Compare UI → http://localhost%s/", *addr)
 	log.Printf("Compare JSON → http://localhost%s/api/v1/compare", *addr)
@@ -49,22 +54,28 @@ func runHost() {
 	}
 }
 
-func defaultReportsDir() string {
-	if wd, err := os.Getwd(); err == nil {
-		candidate := filepath.Join(wd, "python", "dense", "reports")
-		if _, err := os.Stat(filepath.Join(wd, "python", "dense")); err == nil {
-			return candidate
-		}
-	}
-	return "python/dense/reports"
+func defaultDenseReportsDir() string {
+	return bedrockPath("dense", "reports")
 }
 
-func defaultModelsDir() string {
+func defaultCNN1ReportsDir() string {
+	return bedrockPath("cnn1", "reports")
+}
+
+func defaultDenseModelsDir() string {
+	return bedrockPath("dense", "models")
+}
+
+func defaultCNN1ModelsDir() string {
+	return bedrockPath("cnn1", "models")
+}
+
+func bedrockPath(bedrock, sub string) string {
 	if wd, err := os.Getwd(); err == nil {
-		candidate := filepath.Join(wd, "python", "dense", "models")
-		if _, err := os.Stat(filepath.Join(wd, "python", "dense")); err == nil {
+		candidate := filepath.Join(wd, "python", bedrock, sub)
+		if _, err := os.Stat(filepath.Join(wd, "python", bedrock)); err == nil {
 			return candidate
 		}
 	}
-	return "python/dense/models"
+	return filepath.Join("python", bedrock, sub)
 }

@@ -1,0 +1,44 @@
+fixture_version: cnn1_bedrock_v1
+seed: 42
+train_samples: 2000
+test_samples: 100
+input_channels: 1
+max_seq_len: 64
+output_dim: 8
+epochs: 30
+batch_size: 32
+learning_rate: 0.01
+
+engines:
+  - id: pytorch
+    enabled: true
+  - id: tensorflow
+    enabled: true
+  - id: jax
+    enabled: true
+
+# Single Conv1d layers (kernel = seq_len → out_len 1, flat output = filters).
+models:
+  - id: conv1_32_4
+    input_channels: 1
+    seq_len: 32
+    layers:
+      - {kind: cnn1, filters: 4, kernel_size: 32, stride: 1, padding: 0, activation: linear, bias: false}
+
+  - id: conv1_64_8
+    input_channels: 1
+    seq_len: 64
+    layers:
+      - {kind: cnn1, filters: 8, kernel_size: 64, stride: 1, padding: 0, activation: linear, bias: false}
+
+  - id: conv1_16_4
+    input_channels: 1
+    seq_len: 16
+    layers:
+      - {kind: cnn1, filters: 4, kernel_size: 16, stride: 1, padding: 0, activation: relu, bias: false}
+
+  - id: conv1_32_8_relu
+    input_channels: 1
+    seq_len: 32
+    layers:
+      - {kind: cnn1, filters: 8, kernel_size: 32, stride: 1, padding: 0, activation: relu, bias: false}

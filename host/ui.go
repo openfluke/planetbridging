@@ -7,8 +7,9 @@ import (
 	"net/http"
 )
 
-func (s *Server) handleIndex(w http.ResponseWriter, _ *http.Request) {
-	dash, err := s.buildDashboard()
+func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
+	tab := r.URL.Query().Get("tab")
+	dash, err := s.buildDashboard(tab)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -219,10 +220,37 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     font-size: 11px;
   }
   a { color: var(--accent); }
+  .tabs { margin: 12px 0 0; }
+  .tabs a {
+    margin-right: 16px;
+    text-decoration: none;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .tabs a.active { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
 </style>
 </head>
 <body>
 <header>
+  <div class="tabs">
+    <a href="/?tab=dense" {{if eq .Tab "dense"}}class="active"{{end}}>Dense</a>
+    <a href="/?tab=cnn1" {{if eq .Tab "cnn1"}}class="active"{{end}}>CNN1</a>
+  </div>
+  {{if eq .Tab "cnn1"}}
+  <h1>CNN1 — planet pipeline compare</h1>
+  <div class="meta">
+    fixture <strong>{{.CNN1Fixture.Version}}</strong>
+    · {{.CNN1.ReportCount}} pipeline reports
+    · {{.CNN1Loom.EntityFileCount}} <code>.entity</code>
+    · {{.CNN1Loom.LoomReportCount}} loom reports
+    · {{.CNN1Loom.PendingLoomSteps}} pending stream
+  </div>
+  <div class="fixture-banner"><strong>1D conv bedrock.</strong> {{.CNN1Fixture.Note}}</div>
+  <div class="pipeline-hint">
+    Planets: <strong>pytorch · tensorflow · jax</strong>.
+  Stream: <code>POST /api/v1/loom/stream/cnn1</code> · <a href="/PROGRESS.md">PROGRESS.md</a>
+  </div>
+  {{else}}
   <h1>Dense — planet pipeline compare</h1>
   <div class="meta">
     fixture <strong>{{.Fixture.Version}}</strong>
@@ -249,9 +277,58 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     Layer stream is live. Re-run <code>./python/dense/run_engine.sh &lt;planet&gt;</code> with the host up to fill pending loom rows.
   </div>
   {{end}}
+  {{end}}
 </header>
 
 <main>
+{{if eq .Tab "cnn1"}}
+{{if .CNN1LoomRows}}
+<section class="loom-catalog">
+  <h2>Loom entity checkpoints ({{.CNN1ModelsDir}})</h2>
+  <table>
+    <thead><tr><th>Model</th><th>Planet</th><th>.entity</th><th>Loom report</th></tr></thead>
+    <tbody>
+      {{range .CNN1LoomRows}}{{range .Planets}}
+      <tr>
+        <td>{{.ModelID}}</td><td>{{.Engine}}</td>
+        <td class="mono">{{if .EntityFiles}}{{index .EntityFiles 0}}{{else}}—{{end}}</td>
+        <td>{{if .HasLoomReport}}<span class="loom-yes">✓</span>{{else}}<span class="loom-no">pending</span>{{end}}</td>
+      </tr>
+      {{end}}{{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{if not .CNN1.Models}}
+  <div class="empty">No CNN1 reports yet.<br><br><code>go run .</code><br><code>./python/cnn1/run_cnn1.sh</code></div>
+{{else}}
+  {{range .CNN1.Models}}
+  <section class="model">
+    <h2>{{.ModelID}}</h2>
+    {{range .Pipelines}}
+    <div class="planet-block">
+      <div class="planet-head">{{.Planet}} pipeline</div>
+      <div class="steps">{{range .Steps}}<span class="{{stepClass .Stage}}">{{stepLabel .Stage .Format}} ✓</span>{{end}}</div>
+      <table>
+        <thead><tr><th>Compare</th><th>From</th><th>To</th><th>Max abs diff</th><th>Mean abs diff</th></tr></thead>
+        <tbody>
+          {{range .Compare}}
+          <tr class="{{compareClass .}}">
+            <td><span class="badge {{compareClass .}}">{{compareLabel .}}</span></td>
+            <td>{{.FromStage}} / {{.FromFormat}}</td>
+            <td>{{toLabel .}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MaxAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MaxAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MaxAbsDiff}}</div></div>{{end}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MeanAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MeanAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MeanAbsDiff}}</div></div>{{end}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+  </section>
+  {{end}}
+{{end}}
+{{else}}
 {{if .LoomRows}}
 <section class="loom-catalog">
   <h2>Loom entity checkpoints ({{.ModelsDir}})</h2>
@@ -324,6 +401,7 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     {{end}}
   </section>
   {{end}}
+{{end}}
 {{end}}
 </main>
 
