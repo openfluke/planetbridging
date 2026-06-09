@@ -14,26 +14,30 @@ type Server struct {
 	cnn1Store      *Store
 	cnn2Store      *Store
 	cnn3Store      *Store
+	mhaStore       *Store
 	denseModelsDir string
 	cnn1ModelsDir  string
 	cnn2ModelsDir  string
 	cnn3ModelsDir  string
+	mhaModelsDir   string
 	mux            *http.ServeMux
 }
 
 func NewServer(
-	denseStore, cnn1Store, cnn2Store, cnn3Store *Store,
-	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir, cnn3ModelsDir string,
+	denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore *Store,
+	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir, cnn3ModelsDir, mhaModelsDir string,
 ) *Server {
 	s := &Server{
 		denseStore:     denseStore,
 		cnn1Store:      cnn1Store,
 		cnn2Store:      cnn2Store,
 		cnn3Store:      cnn3Store,
+		mhaStore:       mhaStore,
 		denseModelsDir: denseModelsDir,
 		cnn1ModelsDir:  cnn1ModelsDir,
 		cnn2ModelsDir:  cnn2ModelsDir,
 		cnn3ModelsDir:  cnn3ModelsDir,
+		mhaModelsDir:   mhaModelsDir,
 		mux:            http.NewServeMux(),
 	}
 	s.routes()
@@ -57,7 +61,11 @@ func (s *Server) allReports() []Report {
 	for i := range cnn3 {
 		cnn3[i].Bedrock = "cnn3"
 	}
-	return append(append(append(dense, cnn1...), cnn2...), cnn3...)
+	mha, _ := s.mhaStore.LoadAll()
+	for i := range mha {
+		mha[i].Bedrock = "mha"
+	}
+	return append(append(append(append(dense, cnn1...), cnn2...), cnn3...), mha...)
 }
 
 func (s *Server) Handler() http.Handler { return s.mux }
@@ -72,6 +80,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/compare/cnn1", s.handleCompareCNN1)
 	s.mux.HandleFunc("GET /api/v1/compare/cnn2", s.handleCompareCNN2)
 	s.mux.HandleFunc("GET /api/v1/compare/cnn3", s.handleCompareCNN3)
+	s.mux.HandleFunc("GET /api/v1/compare/mha", s.handleCompareMHA)
 	s.mux.HandleFunc("GET /api/v1/compare.txt", s.handleCompareText)
 	s.mux.HandleFunc("GET /api/v1/loom/catalog", s.handleLoomCatalog)
 	s.mux.HandleFunc("POST /api/v1/loom/import", s.handleLoomImport)
@@ -79,6 +88,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/loom/stream/cnn1", s.handleCNN1Stream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/cnn2", s.handleCNN2Stream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/cnn3", s.handleCNN3Stream)
+	s.mux.HandleFunc("POST /api/v1/loom/stream/mha", s.handleMHAStream)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -116,6 +126,8 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		store = s.cnn2Store
 	case "cnn3":
 		store = s.cnn3Store
+	case "mha":
+		store = s.mhaStore
 	}
 	path, err := store.Save(report)
 	if err != nil {
@@ -143,6 +155,10 @@ func (s *Server) handleCompareCNN2(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleCompareCNN3(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, CompareReports(filterBedrock(s.allReports(), "cnn3")))
+}
+
+func (s *Server) handleCompareMHA(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, CompareReports(filterBedrock(s.allReports(), "mha")))
 }
 
 func (s *Server) handleCompareText(w http.ResponseWriter, r *http.Request) {

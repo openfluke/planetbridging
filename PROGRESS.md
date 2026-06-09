@@ -4,7 +4,7 @@ Living doc for what works, what does not, and what we are building next — **la
 
 Update this file when a planet/step/layer type moves status. The compare UI at http://localhost:9876/ is the live scoreboard; this file is the narrative.
 
-> **Scope today:** **Dense**, **CNN1**, **CNN2**, and **CNN3** bedrocks are live. MHA, LSTM, RNN (and everything below) are **not started** — each is roughly another full bedrock program like `python/dense/`.
+> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, and **MHA** bedrocks are live (v1 POC). **LSTM**, **RNN** (and everything below) are **not started** — each is roughly another full bedrock program like `python/dense/`.
 
 ---
 
@@ -40,7 +40,7 @@ native → onnx → safetensors → loom entity   ❌
 | Path | Status | Notes |
 |------|--------|-------|
 | native → export (on disk) | ✅ dense bedrock | Proves save/reload did not corrupt weights |
-| native → loom / entity (layer stream) | 🟡 dense only | Python reads **live in-memory** weights; Go builds `.stream.entity` |
+| native → loom / entity (layer stream) | ✅ dense, cnn1–3, mha | Python reads **live in-memory** weights; Go builds `.stream.entity` |
 | onnx file → loom entity | ⬜ | No Go importer wired in compare-host |
 | safetensors file → loom entity | ⬜ | No Go importer wired in compare-host (`.safetensors.entity` files on disk are experiments, not reported) |
 | loom entity → export | ⬜ | Export back to planets not started |
@@ -59,7 +59,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 | **CNN1** | ✅ `python/cnn1/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/cnn1` | ✅ cnn1 tab | 🟡 POC |
 | **CNN2** | ✅ `python/cnn2/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/cnn2` | ✅ cnn2 tab | 🟡 POC |
 | **CNN3** | ✅ `python/cnn3/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/cnn3` | ✅ cnn3 tab | 🟡 POC |
-| **MHA** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| **MHA** | ✅ `python/mha/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/mha` | ✅ mha tab | 🟡 POC |
 | **LSTM** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | **RNN** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 
@@ -67,11 +67,11 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 
 ### Suggested order after Dense is green
 
-1. **CNN1** — smallest conv surface; teaches layout (NCHW vs NHWC) before 2D/3D
-2. **CNN2** — vision stacks; ONNX `Conv` + Keras `Conv2D` export paths
-3. **MHA** — unlocks transformers; hardest mapping (heads, KV, masks, GQA)
-4. **LSTM** → **RNN** — recurrent state + time dimension; export pain on TF/JAX
-5. **CNN3** — niche (video/volume); do when 1D/2D conv bridge is boring
+1. ~~**CNN1**~~ — ✅ done
+2. ~~**CNN2**~~ — ✅ done
+3. ~~**CNN3**~~ — ✅ done
+4. ~~**MHA**~~ — ✅ done (2026-06-09)
+5. **LSTM** → **RNN** — recurrent state + time dimension; export pain on TF/JAX
 
 ---
 
@@ -90,6 +90,26 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 | Go `BuildNetworkFromStream` | Dense only | Map to `VolumetricLayer` CNN/MHA/… |
 | `.entity` save/load + infer | ✅ dense MLP path | Per-layer infer helper |
 | Compare host UI tab | Dense pipeline view | New tab or filter per layer type |
+
+---
+
+### MHA (multi-head attention) — ✅ v1 bedrock
+
+**Bedrock:** `python/mha/` · fixture `mha_bedrock_v1` · 4 single-block models · pytorch / tensorflow / jax · **`[N, seq, d_model]`** fixtures.
+
+**Run:** `go run .` then `./python/mha/run_mha.sh` · UI tab: http://localhost:9876/?tab=mha
+
+| Planet | Export | Loom stream | Status |
+|--------|--------|-------------|--------|
+| PyTorch | — (native only) | ✅ | ✅ 4/4 PASS |
+| TensorFlow | — (native only) | ✅ | ✅ 4/4 PASS |
+| JAX | — (native only) | ✅ | ✅ 4/4 PASS |
+
+**Scope (v1):** single causal MHA block matching Loom semantics (**RoPE** + **causal mask**). Custom forward in each planet (not stock `nn.MultiheadAttention`). `epochs: 0` — init weights, infer on shared `x_test`, stream Q/K/V/O to Go. Infer uses batch=1 per sample to avoid Loom KV cross-batch coupling.
+
+**Models:** `mha_8_2_4`, `mha_16_2_8`, `mha_16_4_4`, `mha_8_4_8`.
+
+**Out of scope (v1):** GQA/MQA, Q/K norm, training loops, export checkpoints, full transformer blocks.
 
 ---
 
@@ -183,25 +203,13 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 
 ---
 
-### MHA (multi-head attention) — ⬜ not started
+### MHA design notes (original plan — now ✅ v1 above)
 
-**Loom:** `VolumetricLayer` MHA · Q/K/V/O projections, heads, RoPE, KV cache semantics (see Loom 0.79 MHA fixes).
+**Loom:** `VolumetricLayer` MHA · Q/K/V/O projections, heads, RoPE, KV cache semantics.
 
-**Planet ops:**
+**Hard parts (addressed in v1):** Q/K/V/O weight packing order; causal + RoPE must match `poly.MHAForwardPolymorphic`; RoPE in-place bugs in planet forwards (read values before write); per-sample Loom infer for compare.
 
-| Planet | API |
-|--------|-----|
-| PyTorch | `nn.MultiheadAttention`, custom HF blocks |
-| TensorFlow | `MultiHeadAttention`, Keras attention layers |
-| ONNX | `Attention`, `MultiHeadAttention`, `GroupQueryAttention` |
-| JAX/Flax | `nn.MultiHeadDotProductAttention` |
-| HF + safetensors | weight naming conventions, not a single op |
-
-**Hard parts:** **Not one weight matrix** — Q/K/V/O, num_heads, head_dim, optional biases; causal masks vs bidirectional; **GQA/MQA**; layer norm / RMS norm placement (often separate Loom layers); sequence length and batch in stream protocol; export graphs that fuse ops differently per planet.
-
-**Bedrock idea:** single attention block + projection, fixed seq len (e.g. 8 or 16), tiny d_model — compare one forward pass before full GPT blocks.
-
-**Depends on:** Dense (projections are dense-like); often **SwiGLU + RMSNorm** for full transformer parity (future).
+**Still deferred:** GQA/MQA, Q/K norm, bidirectional attention, export graphs, **SwiGLU + RMSNorm** for full transformer parity.
 
 ---
 
@@ -238,8 +246,6 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 | **Residual** | Topology wiring, not standalone planet op |
 
 ---
-
-## Dense bedrock — per-planet pipeline
 
 ## Dense bedrock — per-planet pipeline
 
@@ -287,6 +293,8 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 |-------|--------|-------|
 | `StreamRequest` / layer JSON | ✅ | Row-major `[out × in]` weights + optional bias |
 | `BuildNetworkFromStream` | ✅ | Dense layers only |
+| `BuildNetworkFromMHAStream` | ✅ | Q/K/V/O + biases → `LayerMultiHeadAttention` |
+| `InferMHAStack` | ✅ | batch=1 per sample (KV isolation) |
 | `SaveEntity` / `LoadEntity` | ✅ | Biases in `bridge.dense.N.biases` blobs |
 | `InferDenseMLP` | ✅ | Bias before activation |
 | Fixture loader (`fixtures/*.npz`) | ✅ | Shared `x_test` for compare |
@@ -302,6 +310,8 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 | Per-planet pipeline compare | ✅ |
 | Plain-decimal diff readout + scale hints | ✅ |
 | `POST /api/v1/loom/stream` | ✅ |
+| `POST /api/v1/loom/stream/mha` | ✅ |
+| MHA compare tab | ✅ |
 | Loom entity catalog table | ✅ |
 | Pending loom rows when stream not run | ✅ |
 
@@ -330,15 +340,25 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 4. ~~Scaffold `python/cnn1/` bedrock + extend `bridge` stream schema for Conv1d.~~ ✅
 5. ~~CNN2 bedrock (tiny vision).~~ ✅ (2026-06-09)
 6. ~~CNN3 bedrock (micro volume).~~ ✅ (2026-06-09)
-7. MHA bedrock (single attention block — largest jump).
-7. LSTM → RNN bedrock.
-8. CNN3 if needed for 3D models.
+7. ~~MHA bedrock (single attention block).~~ ✅ (2026-06-09) — 12/12 loom PASS
+8. LSTM → RNN bedrock.
 
 Do **not** assume dense stream API generalizes — each layer type gets explicit schema fields and Go builder code.
 
 ---
 
-## Per-model loom log (fill in as we go)
+## Per-model loom log — MHA (`mha_bedrock_v1`)
+
+| Model ID | PyTorch | TensorFlow | JAX |
+|----------|---------|------------|-----|
+| `mha_8_2_4` | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mha_16_2_8` | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mha_16_4_4` | ✅ PASS | ✅ PASS | ✅ PASS |
+| `mha_8_4_8` | ✅ PASS | ✅ PASS | ✅ PASS |
+
+---
+
+## Per-model loom log — Dense (fill in as we go)
 
 | Model ID | PyTorch | TensorFlow | JAX | sklearn |
 |----------|---------|------------|-----|---------|

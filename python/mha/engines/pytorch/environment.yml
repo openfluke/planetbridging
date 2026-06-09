@@ -1,0 +1,9 @@
+name: pb-mha-pytorch
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pyyaml
+  - pytorch
+  - pip
