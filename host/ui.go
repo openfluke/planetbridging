@@ -260,10 +260,11 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     <a href="/?tab=mha" {{if eq .Tab "mha"}}class="active"{{end}}>MHA</a>
     <a href="/?tab=lstm" {{if eq .Tab "lstm"}}class="active"{{end}}>LSTM</a>
     <a href="/?tab=rnn" {{if eq .Tab "rnn"}}class="active"{{end}}>RNN</a>
+    <a href="/?tab=mixer" {{if eq .Tab "mixer"}}class="active"{{end}}>Mixer</a>
   </div>
   <div class="header-actions">
     <a href="/api/v1/export/all.pdf" class="export-btn" download="planetbridging-compare-all.pdf">Export all tabs → .pdf</a>
-    <span class="export-hint">dense · cnn1 · cnn2 · cnn3 · mha · lstm · rnn — all models &amp; compare rows</span>
+    <span class="export-hint">dense · cnn1 · cnn2 · cnn3 · mha · lstm · rnn · mixer — all models &amp; compare rows</span>
   </div>
   {{if eq .Tab "cnn1"}}
   <h1>CNN1 — planet pipeline compare</h1>
@@ -334,6 +335,20 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
   <div class="pipeline-hint">
     Planets: <strong>pytorch · tensorflow · jax</strong>.
   Stream: <code>POST /api/v1/loom/stream/rnn</code> · <a href="/PROGRESS.md">PROGRESS.md</a>
+  </div>
+  {{else if eq .Tab "mixer"}}
+  <h1>Mixer — planet pipeline compare</h1>
+  <div class="meta">
+    fixture <strong>{{.MixerFixture.Version}}</strong>
+    · {{.Mixer.ReportCount}} pipeline reports
+    · {{.MixerLoom.EntityFileCount}} <code>.entity</code>
+    · {{.MixerLoom.LoomReportCount}} loom reports
+    · {{.MixerLoom.PendingLoomSteps}} pending stream
+  </div>
+  <div class="fixture-banner"><strong>All-layers mixer bedrock.</strong> {{.MixerFixture.Note}}</div>
+  <div class="pipeline-hint">
+    Planets: <strong>pytorch · tensorflow · jax</strong>.
+  Stream: <code>POST /api/v1/loom/stream/mixer</code> · <a href="/PROGRESS.md">PROGRESS.md</a>
   </div>
   {{else if eq .Tab "mha"}}
   <h1>MHA — planet pipeline compare</h1>
@@ -590,6 +605,53 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
   <div class="empty">No RNN reports yet.<br><br><code>go run .</code><br><code>./python/rnn/run_rnn.sh</code></div>
 {{else}}
   {{range .RNN.Models}}
+  <section class="model">
+    <h2>{{.ModelID}}</h2>
+    {{range .Pipelines}}
+    <div class="planet-block">
+      <div class="planet-head">{{.Planet}} pipeline</div>
+      <div class="steps">{{range .Steps}}<span class="{{stepClass .Stage}}">{{stepLabel .Stage .Format}} ✓</span>{{end}}</div>
+      <table>
+        <thead><tr><th>Compare</th><th>From</th><th>To</th><th>Max abs diff</th><th>Mean abs diff</th></tr></thead>
+        <tbody>
+          {{range .Compare}}
+          <tr class="{{compareClass .}}">
+            <td><span class="badge {{compareClass .}}">{{compareLabel .}}</span></td>
+            <td>{{.FromStage}} / {{.FromFormat}}</td>
+            <td>{{toLabel .}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MaxAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MaxAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MaxAbsDiff}}</div></div>{{end}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MeanAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MeanAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MeanAbsDiff}}</div></div>{{end}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+  </section>
+  {{end}}
+{{end}}
+{{else if eq .Tab "mixer"}}
+{{if .MixerLoomRows}}
+<section class="loom-catalog">
+  <h2>Loom entity checkpoints ({{.MixerModelsDir}})</h2>
+  <table>
+    <thead><tr><th>Model</th><th>Planet</th><th>.entity</th><th>Loom report</th></tr></thead>
+    <tbody>
+      {{range .MixerLoomRows}}{{range .Planets}}
+      <tr>
+        <td>{{.ModelID}}</td><td>{{.Engine}}</td>
+        <td class="mono">{{if .EntityFiles}}{{index .EntityFiles 0}}{{else}}—{{end}}</td>
+        <td>{{if .HasLoomReport}}<span class="loom-yes">✓</span>{{else}}<span class="loom-no">pending</span>{{end}}</td>
+      </tr>
+      {{end}}{{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{if not .Mixer.Models}}
+  <div class="empty">No mixer reports yet.<br><br><code>go run .</code><br><code>./python/mixer/run_mixer.sh</code></div>
+{{else}}
+  {{range .Mixer.Models}}
   <section class="model">
     <h2>{{.ModelID}}</h2>
     {{range .Pipelines}}

@@ -1,0 +1,38 @@
+"""Python constants matching bridge/mixer_spec.go."""
+
+MODEL_ID = "mixer_all_v1"
+FIXTURE_VERSION = "mixer_bedrock_v1"
+LAYER_COUNT = 10
+OUTPUT_DIM = 8
+
+VOLUME_C = 1
+VOLUME_D = 2
+VOLUME_H = 2
+VOLUME_W = 2
+
+CNN3_FILTERS = 2
+CNN3_KERNEL = 2
+
+DENSE_BRIDGE1 = 8  # after cnn3 flat 2
+
+CNN2_H = 2
+CNN2_W = 4
+CNN2_FILTERS = 2
+CNN2_KERNEL = 2
+
+DENSE_BRIDGE2 = 8  # after cnn2 flat 6
+
+CNN1_LEN = 8
+CNN1_FILTERS = 4
+CNN1_KERNEL = 8
+
+DENSE_BRIDGE3 = 8  # after cnn1 flat 4
+
+MHA_SEQ = 2
+MHA_D_MODEL = 4
+MHA_HEADS = 2
+MHA_HEAD_DIM = 2
+
+RECURRENT_SEQ = 2
+RECURRENT_IN = 4
+RECURRENT_HID = 4

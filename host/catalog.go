@@ -46,6 +46,7 @@ type Dashboard struct {
 	MHAFixture    FixtureInfo
 	LSTMFixture   FixtureInfo
 	RNNFixture    FixtureInfo
+	MixerFixture  FixtureInfo
 	Dense         DenseComparisonSummary
 	CNN1          DenseComparisonSummary
 	CNN2          DenseComparisonSummary
@@ -53,6 +54,7 @@ type Dashboard struct {
 	MHA           DenseComparisonSummary
 	LSTM          DenseComparisonSummary
 	RNN           DenseComparisonSummary
+	Mixer         DenseComparisonSummary
 	Loom          LoomDashboardStats
 	CNN1Loom      LoomDashboardStats
 	CNN2Loom      LoomDashboardStats
@@ -60,6 +62,7 @@ type Dashboard struct {
 	MHALoom       LoomDashboardStats
 	LSTMLoom      LoomDashboardStats
 	RNNLoom       LoomDashboardStats
+	MixerLoom     LoomDashboardStats
 	LoomRows      []LoomImportRow
 	CNN1LoomRows  []LoomImportRow
 	CNN2LoomRows  []LoomImportRow
@@ -67,6 +70,7 @@ type Dashboard struct {
 	MHALoomRows   []LoomImportRow
 	LSTMLoomRows  []LoomImportRow
 	RNNLoomRows   []LoomImportRow
+	MixerLoomRows []LoomImportRow
 	ModelsDir     string
 	CNN1ModelsDir string
 	CNN2ModelsDir string
@@ -74,6 +78,7 @@ type Dashboard struct {
 	MHAModelsDir  string
 	LSTMModelsDir string
 	RNNModelsDir  string
+	MixerModelsDir string
 }
 
 func computeLoomStats(dense DenseComparisonSummary, rows []LoomImportRow) LoomDashboardStats {
@@ -231,6 +236,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	mhaRep := filterBedrock(all, "mha")
 	lstmRep := filterBedrock(all, "lstm")
 	rnnRep := filterBedrock(all, "rnn")
+	mixerRep := filterBedrock(all, "mixer")
 
 	dense := SortDenseSummary(CompareDensePipeline(denseRep))
 	cnn1 := SortDenseSummary(CompareDensePipeline(cnn1Rep))
@@ -239,6 +245,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	mha := SortDenseSummary(CompareDensePipeline(mhaRep))
 	lstm := SortDenseSummary(CompareDensePipeline(lstmRep))
 	rnn := SortDenseSummary(CompareDensePipeline(rnnRep))
+	mixer := SortDenseSummary(CompareDensePipeline(mixerRep))
 
 	fixture := DefaultFixtureInfo()
 	if dense.FixtureVersion != "" {
@@ -292,6 +299,14 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if rnn.FixtureVersion != "" {
 		rnnFixture.Version = rnn.FixtureVersion
 	}
+	mixerFixture := FixtureInfo{
+		Version: "mixer_bedrock_v1",
+		Seed:    42,
+		Note:    "All-layers mixer bedrock — CNN3→Dense→CNN2→Dense→CNN1→Dense→MHA→RNN→LSTM→Dense, planets: pytorch · tensorflow · jax.",
+	}
+	if mixer.FixtureVersion != "" {
+		mixerFixture.Version = mixer.FixtureVersion
+	}
 
 	denseRows, err := ScanSavedModels(s.denseModelsDir, denseRep)
 	if err != nil {
@@ -321,6 +336,10 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if err != nil {
 		return Dashboard{}, err
 	}
+	mixerRows, err := ScanSavedModels(s.mixerModelsDir, mixerRep)
+	if err != nil {
+		return Dashboard{}, err
+	}
 	return Dashboard{
 		Tab:           tab,
 		Fixture:       fixture,
@@ -330,6 +349,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		MHAFixture:    mhaFixture,
 		LSTMFixture:   lstmFixture,
 		RNNFixture:    rnnFixture,
+		MixerFixture:  mixerFixture,
 		Dense:         dense,
 		CNN1:          cnn1,
 		CNN2:          cnn2,
@@ -337,6 +357,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		MHA:           mha,
 		LSTM:          lstm,
 		RNN:           rnn,
+		Mixer:         mixer,
 		Loom:          computeLoomStats(dense, denseRows),
 		CNN1Loom:      computeLoomStats(cnn1, cnn1Rows),
 		CNN2Loom:      computeLoomStats(cnn2, cnn2Rows),
@@ -344,6 +365,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		MHALoom:       computeLoomStats(mha, mhaRows),
 		LSTMLoom:      computeLoomStats(lstm, lstmRows),
 		RNNLoom:       computeLoomStats(rnn, rnnRows),
+		MixerLoom:     computeLoomStats(mixer, mixerRows),
 		LoomRows:      denseRows,
 		CNN1LoomRows:  cnn1Rows,
 		CNN2LoomRows:  cnn2Rows,
@@ -351,13 +373,15 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		MHALoomRows:   mhaRows,
 		LSTMLoomRows:  lstmRows,
 		RNNLoomRows:   rnnRows,
+		MixerLoomRows: mixerRows,
 		ModelsDir:     s.denseModelsDir,
 		CNN1ModelsDir: s.cnn1ModelsDir,
 		CNN2ModelsDir: s.cnn2ModelsDir,
 		CNN3ModelsDir: s.cnn3ModelsDir,
 		MHAModelsDir:  s.mhaModelsDir,
 		LSTMModelsDir: s.lstmModelsDir,
-		RNNModelsDir:  s.rnnModelsDir,
+		RNNModelsDir:   s.rnnModelsDir,
+		MixerModelsDir: s.mixerModelsDir,
 	}, nil
 }
 

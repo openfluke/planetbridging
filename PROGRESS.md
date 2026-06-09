@@ -6,7 +6,7 @@ Update this file when a planet/step/layer type moves status. The compare UI at h
 
 > **Planet Bridging v0.5.0** — planets → Loom (all 7 core layers). **v1.0** = Loom → other engines. **v1.x–2.0** = file import, extra layers, gaps. See [`README.md`](./README.md#version-roadmap-how-we-count-halves).
 >
-> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, **LSTM**, and **RNN** bedrocks are live (layer POCs). Further layer types are **not started** — each is roughly another full bedrock program like `python/dense/`.
+> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, **LSTM**, **RNN**, and **Mixer** (all-layer integration) bedrocks are live. Further layer types are **not started** — each is roughly another full bedrock program like `python/dense/`.
 
 ---
 
@@ -42,7 +42,7 @@ native → onnx → safetensors → loom entity   ❌
 | Path | Status | Notes |
 |------|--------|-------|
 | native → export (on disk) | ✅ dense bedrock | Proves save/reload did not corrupt weights |
-| native → loom / entity (layer stream) | ✅ dense, cnn1–3, mha, lstm, rnn | Python reads **live in-memory** weights; Go builds `.stream.entity` |
+| native → loom / entity (layer stream) | ✅ dense, cnn1–3, mha, lstm, rnn, mixer | Python reads **live in-memory** weights; Go builds `.stream.entity` |
 | onnx file → loom entity | ⬜ | No Go importer wired in compare-host |
 | safetensors file → loom entity | ⬜ | No Go importer wired in compare-host (`.safetensors.entity` files on disk are experiments, not reported) |
 | loom entity → export | ⬜ | Export back to planets not started |
@@ -64,6 +64,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 | **MHA** | ✅ `python/mha/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/mha` | ✅ mha tab | 🟡 POC |
 | **LSTM** | ✅ `python/lstm/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/lstm` | ✅ lstm tab | 🟡 POC |
 | **RNN** | ✅ `python/rnn/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/rnn` | ✅ rnn tab | 🟡 POC |
+| **Mixer** | ✅ `python/mixer/` · 1 model × 3 planets | ✅ pytorch/tf/jax (chains all 7 types) | ✅ `POST /api/v1/loom/stream/mixer` | ✅ mixer tab | 🟡 POC |
 
 **Also in Loom (not on planet-bridge roadmap yet):** SwiGLU, Embedding, Residual — needed for full transformers but deferred until MHA + Dense paths exist.
 
@@ -75,6 +76,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 4. ~~**MHA**~~ — ✅ done (2026-06-09)
 5. ~~**LSTM**~~ — ✅ done (2026-06-09)
 6. ~~**RNN**~~ — ✅ done (2026-06-09)
+7. ~~**Mixer**~~ — ✅ done (2026-06-10) — 3/3 loom PASS (`mixer_all_v1`)
 
 ---
 
@@ -359,6 +361,8 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 | LSTM compare tab | ✅ |
 | `POST /api/v1/loom/stream/rnn` | ✅ |
 | RNN compare tab | ✅ |
+| `POST /api/v1/loom/stream/mixer` | ✅ |
+| Mixer compare tab | ✅ |
 | Loom entity catalog table | ✅ |
 | Pending loom rows when stream not run | ✅ |
 
@@ -390,8 +394,19 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 7. ~~MHA bedrock (single attention block).~~ ✅ (2026-06-09) — 12/12 loom PASS
 8. ~~LSTM bedrock (single cell).~~ ✅ (2026-06-09) — 12/12 loom PASS
 9. ~~RNN bedrock (single cell).~~ ✅ (2026-06-09) — 12/12 loom PASS
+10. ~~Mixer bedrock (all 7 layer types in one stack).~~ ✅ (2026-06-10) — 3/3 loom PASS
 
 Do **not** assume dense stream API generalizes — each layer type gets explicit schema fields and Go builder code.
+
+---
+
+## Per-model loom log — Mixer (`mixer_bedrock_v1`)
+
+Fixed 10-layer stack: CNN3 → Dense → CNN2 → Dense → CNN1 → Dense → MHA → RNN → LSTM → Dense head. Input `[N,1,2,2,2]`, output dim 8.
+
+| Model ID | PyTorch | TensorFlow | JAX |
+|----------|---------|------------|-----|
+| `mixer_all_v1` | ✅ PASS | ✅ PASS | ✅ PASS |
 
 ---
 

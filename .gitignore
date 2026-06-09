@@ -4,6 +4,7 @@
 /bin/
 /dist/
 /planetbridging
+compare-host
 *.test
 *.out
 

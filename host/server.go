@@ -17,6 +17,7 @@ type Server struct {
 	mhaStore       *Store
 	lstmStore      *Store
 	rnnStore       *Store
+	mixerStore     *Store
 	denseModelsDir string
 	cnn1ModelsDir  string
 	cnn2ModelsDir  string
@@ -24,12 +25,13 @@ type Server struct {
 	mhaModelsDir   string
 	lstmModelsDir  string
 	rnnModelsDir   string
+	mixerModelsDir string
 	mux            *http.ServeMux
 }
 
 func NewServer(
-	denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore *Store,
-	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir, cnn3ModelsDir, mhaModelsDir, lstmModelsDir, rnnModelsDir string,
+	denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, mixerStore *Store,
+	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir, cnn3ModelsDir, mhaModelsDir, lstmModelsDir, rnnModelsDir, mixerModelsDir string,
 ) *Server {
 	s := &Server{
 		denseStore:     denseStore,
@@ -39,6 +41,7 @@ func NewServer(
 		mhaStore:       mhaStore,
 		lstmStore:      lstmStore,
 		rnnStore:       rnnStore,
+		mixerStore:     mixerStore,
 		denseModelsDir: denseModelsDir,
 		cnn1ModelsDir:  cnn1ModelsDir,
 		cnn2ModelsDir:  cnn2ModelsDir,
@@ -46,6 +49,7 @@ func NewServer(
 		mhaModelsDir:   mhaModelsDir,
 		lstmModelsDir:  lstmModelsDir,
 		rnnModelsDir:   rnnModelsDir,
+		mixerModelsDir: mixerModelsDir,
 		mux:            http.NewServeMux(),
 	}
 	s.routes()
@@ -81,7 +85,11 @@ func (s *Server) allReports() []Report {
 	for i := range rnn {
 		rnn[i].Bedrock = "rnn"
 	}
-	return append(append(append(append(append(append(dense, cnn1...), cnn2...), cnn3...), mha...), lstm...), rnn...)
+	mixer, _ := s.mixerStore.LoadAll()
+	for i := range mixer {
+		mixer[i].Bedrock = "mixer"
+	}
+	return append(append(append(append(append(append(append(dense, cnn1...), cnn2...), cnn3...), mha...), lstm...), rnn...), mixer...)
 }
 
 func (s *Server) Handler() http.Handler { return s.mux }
@@ -99,6 +107,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/compare/mha", s.handleCompareMHA)
 	s.mux.HandleFunc("GET /api/v1/compare/lstm", s.handleCompareLSTM)
 	s.mux.HandleFunc("GET /api/v1/compare/rnn", s.handleCompareRNN)
+	s.mux.HandleFunc("GET /api/v1/compare/mixer", s.handleCompareMixer)
 	s.mux.HandleFunc("GET /api/v1/compare.txt", s.handleCompareText)
 	s.mux.HandleFunc("GET /api/v1/export/all.pdf", s.handleExportAllPDF)
 	s.mux.HandleFunc("GET /api/v1/loom/catalog", s.handleLoomCatalog)
@@ -110,6 +119,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/loom/stream/mha", s.handleMHAStream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/lstm", s.handleLSTMStream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/rnn", s.handleRNNStream)
+	s.mux.HandleFunc("POST /api/v1/loom/stream/mixer", s.handleMixerStream)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -153,6 +163,8 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		store = s.lstmStore
 	case "rnn":
 		store = s.rnnStore
+	case "mixer":
+		store = s.mixerStore
 	}
 	path, err := store.Save(report)
 	if err != nil {

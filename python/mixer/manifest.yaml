@@ -1,0 +1,23 @@
+fixture_version: mixer_bedrock_v1
+seed: 42
+# POC: init weights → native infer on x_test → stream to Loom → compare outputs.
+train_samples: 64
+test_samples: 100
+input_channels: 1
+max_spatial: 2
+output_dim: 8
+epochs: 0
+batch_size: 32
+learning_rate: 0.01
+
+engines:
+  - id: pytorch
+    enabled: true
+  - id: tensorflow
+    enabled: true
+  - id: jax
+    enabled: true
+
+# Fixed 10-layer stack (CNN3 → Dense → CNN2 → Dense → CNN1 → Dense → MHA → RNN → LSTM → Dense).
+models:
+  - id: mixer_all_v1

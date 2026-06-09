@@ -279,7 +279,7 @@ func PipelineCompareClass(d PipelineStepDiff) string {
 }
 
 // AllBedrockIDs is tab order for full export.
-var AllBedrockIDs = []string{"dense", "cnn1", "cnn2", "cnn3", "mha", "lstm", "rnn"}
+var AllBedrockIDs = []string{"dense", "cnn1", "cnn2", "cnn3", "mha", "lstm", "rnn", "mixer"}
 
 func FormatBedrockComparisonText(bedrock string, summary DenseComparisonSummary) string {
 	var b fmtBuilder
