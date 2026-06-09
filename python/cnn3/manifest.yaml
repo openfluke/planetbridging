@@ -1,0 +1,52 @@
+fixture_version: cnn3_bedrock_v1
+seed: 42
+train_samples: 2000
+test_samples: 100
+input_channels: 1
+max_spatial: 16
+output_dim: 8
+epochs: 30
+batch_size: 32
+learning_rate: 0.01
+
+engines:
+  - id: pytorch
+    enabled: true
+  - id: tensorflow
+    enabled: true
+  - id: jax
+    enabled: true
+
+# Single Conv3d layers (kernel = D = H = W → 1³ spatial, flat output = filters).
+models:
+  - id: conv3_4_4
+    input_channels: 1
+    depth: 4
+    height: 4
+    width: 4
+    layers:
+      - {kind: cnn3, filters: 4, kernel_size: 4, stride: 1, padding: 0, activation: linear, bias: false}
+
+  - id: conv3_8_4
+    input_channels: 1
+    depth: 8
+    height: 8
+    width: 8
+    layers:
+      - {kind: cnn3, filters: 4, kernel_size: 8, stride: 1, padding: 0, activation: relu, bias: false}
+
+  - id: conv3_8_8_relu
+    input_channels: 1
+    depth: 8
+    height: 8
+    width: 8
+    layers:
+      - {kind: cnn3, filters: 8, kernel_size: 8, stride: 1, padding: 0, activation: relu, bias: false}
+
+  - id: conv3_6_4
+    input_channels: 1
+    depth: 6
+    height: 6
+    width: 6
+    layers:
+      - {kind: cnn3, filters: 4, kernel_size: 6, stride: 1, padding: 0, activation: linear, bias: false}

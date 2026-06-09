@@ -4,7 +4,7 @@ Living doc for what works, what does not, and what we are building next — **la
 
 Update this file when a planet/step/layer type moves status. The compare UI at http://localhost:9876/ is the live scoreboard; this file is the narrative.
 
-> **Scope today:** **Dense**, **CNN1**, and **CNN2** bedrocks are live. CNN3, MHA, LSTM, RNN (and everything below) are **not started** — each is roughly another full bedrock program like `python/dense/`.
+> **Scope today:** **Dense**, **CNN1**, **CNN2**, and **CNN3** bedrocks are live. MHA, LSTM, RNN (and everything below) are **not started** — each is roughly another full bedrock program like `python/dense/`.
 
 ---
 
@@ -58,7 +58,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 | **Dense** | ✅ `python/dense/` · 12×4 planets | ✅ live extractors (no Paddle) | ✅ stream → `.entity` | ✅ dense tab | 🟡 POC |
 | **CNN1** | ✅ `python/cnn1/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/cnn1` | ✅ cnn1 tab | 🟡 POC |
 | **CNN2** | ✅ `python/cnn2/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/cnn2` | ✅ cnn2 tab | 🟡 POC |
-| **CNN3** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| **CNN3** | ✅ `python/cnn3/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/cnn3` | ✅ cnn3 tab | 🟡 POC |
 | **MHA** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | **LSTM** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
 | **RNN** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -90,6 +90,22 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 | Go `BuildNetworkFromStream` | Dense only | Map to `VolumetricLayer` CNN/MHA/… |
 | `.entity` save/load + infer | ✅ dense MLP path | Per-layer infer helper |
 | Compare host UI tab | Dense pipeline view | New tab or filter per layer type |
+
+---
+
+### CNN3 (3D convolution) — ✅ v1 bedrock
+
+**Bedrock:** `python/cnn3/` · fixture `cnn3_bedrock_v1` · 4 single-conv models · pytorch / tensorflow / jax · **NCDHW** fixtures.
+
+**Run:** `go run .` then `./python/cnn3/run_cnn3.sh` · UI tab: http://localhost:9876/?tab=cnn3
+
+| Planet | Export | Loom stream | Status |
+|--------|--------|-------------|--------|
+| PyTorch | ONNX | ✅ | ✅ 4/4 PASS |
+| TensorFlow | SavedModel | ✅ | ✅ 4/4 PASS (export EXACT) |
+| JAX | — (native only) | ✅ | ✅ 4/4 PASS |
+
+**Scope (v1):** single `Conv3d`, kernel = D = H = W, no bias. Largest cube is `6³` (16³ full-kernel was too slow on TF CPU).
 
 ---
 
@@ -313,7 +329,8 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 
 4. ~~Scaffold `python/cnn1/` bedrock + extend `bridge` stream schema for Conv1d.~~ ✅
 5. ~~CNN2 bedrock (tiny vision).~~ ✅ (2026-06-09)
-6. MHA bedrock (single attention block — largest jump).
+6. ~~CNN3 bedrock (micro volume).~~ ✅ (2026-06-09)
+7. MHA bedrock (single attention block — largest jump).
 7. LSTM → RNN bedrock.
 8. CNN3 if needed for 3D models.
 
