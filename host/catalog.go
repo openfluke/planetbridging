@@ -44,26 +44,31 @@ type Dashboard struct {
 	CNN2Fixture   FixtureInfo
 	CNN3Fixture   FixtureInfo
 	MHAFixture    FixtureInfo
+	LSTMFixture   FixtureInfo
 	Dense         DenseComparisonSummary
 	CNN1          DenseComparisonSummary
 	CNN2          DenseComparisonSummary
 	CNN3          DenseComparisonSummary
 	MHA           DenseComparisonSummary
+	LSTM          DenseComparisonSummary
 	Loom          LoomDashboardStats
 	CNN1Loom      LoomDashboardStats
 	CNN2Loom      LoomDashboardStats
 	CNN3Loom      LoomDashboardStats
 	MHALoom       LoomDashboardStats
+	LSTMLoom      LoomDashboardStats
 	LoomRows      []LoomImportRow
 	CNN1LoomRows  []LoomImportRow
 	CNN2LoomRows  []LoomImportRow
 	CNN3LoomRows  []LoomImportRow
 	MHALoomRows   []LoomImportRow
+	LSTMLoomRows  []LoomImportRow
 	ModelsDir     string
 	CNN1ModelsDir string
 	CNN2ModelsDir string
 	CNN3ModelsDir string
 	MHAModelsDir  string
+	LSTMModelsDir string
 }
 
 func computeLoomStats(dense DenseComparisonSummary, rows []LoomImportRow) LoomDashboardStats {
@@ -219,12 +224,14 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	cnn2Rep := filterBedrock(all, "cnn2")
 	cnn3Rep := filterBedrock(all, "cnn3")
 	mhaRep := filterBedrock(all, "mha")
+	lstmRep := filterBedrock(all, "lstm")
 
 	dense := SortDenseSummary(CompareDensePipeline(denseRep))
 	cnn1 := SortDenseSummary(CompareDensePipeline(cnn1Rep))
 	cnn2 := SortDenseSummary(CompareDensePipeline(cnn2Rep))
 	cnn3 := SortDenseSummary(CompareDensePipeline(cnn3Rep))
 	mha := SortDenseSummary(CompareDensePipeline(mhaRep))
+	lstm := SortDenseSummary(CompareDensePipeline(lstmRep))
 
 	fixture := DefaultFixtureInfo()
 	if dense.FixtureVersion != "" {
@@ -262,6 +269,14 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if mha.FixtureVersion != "" {
 		mhaFixture.Version = mha.FixtureVersion
 	}
+	lstmFixture := FixtureInfo{
+		Version: "lstm_bedrock_v1",
+		Seed:    42,
+		Note:    "LSTM bedrock — Loom gate layout (i,f,g,o), planets: pytorch · tensorflow · jax.",
+	}
+	if lstm.FixtureVersion != "" {
+		lstmFixture.Version = lstm.FixtureVersion
+	}
 
 	denseRows, err := ScanSavedModels(s.denseModelsDir, denseRep)
 	if err != nil {
@@ -283,6 +298,10 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if err != nil {
 		return Dashboard{}, err
 	}
+	lstmRows, err := ScanSavedModels(s.lstmModelsDir, lstmRep)
+	if err != nil {
+		return Dashboard{}, err
+	}
 	return Dashboard{
 		Tab:           tab,
 		Fixture:       fixture,
@@ -290,26 +309,31 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		CNN2Fixture:   cnn2Fixture,
 		CNN3Fixture:   cnn3Fixture,
 		MHAFixture:    mhaFixture,
+		LSTMFixture:   lstmFixture,
 		Dense:         dense,
 		CNN1:          cnn1,
 		CNN2:          cnn2,
 		CNN3:          cnn3,
 		MHA:           mha,
+		LSTM:          lstm,
 		Loom:          computeLoomStats(dense, denseRows),
 		CNN1Loom:      computeLoomStats(cnn1, cnn1Rows),
 		CNN2Loom:      computeLoomStats(cnn2, cnn2Rows),
 		CNN3Loom:      computeLoomStats(cnn3, cnn3Rows),
 		MHALoom:       computeLoomStats(mha, mhaRows),
+		LSTMLoom:      computeLoomStats(lstm, lstmRows),
 		LoomRows:      denseRows,
 		CNN1LoomRows:  cnn1Rows,
 		CNN2LoomRows:  cnn2Rows,
 		CNN3LoomRows:  cnn3Rows,
 		MHALoomRows:   mhaRows,
+		LSTMLoomRows:  lstmRows,
 		ModelsDir:     s.denseModelsDir,
 		CNN1ModelsDir: s.cnn1ModelsDir,
 		CNN2ModelsDir: s.cnn2ModelsDir,
 		CNN3ModelsDir: s.cnn3ModelsDir,
 		MHAModelsDir:  s.mhaModelsDir,
+		LSTMModelsDir: s.lstmModelsDir,
 	}, nil
 }
 

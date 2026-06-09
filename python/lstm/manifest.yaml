@@ -1,0 +1,41 @@
+fixture_version: lstm_bedrock_v1
+seed: 42
+# POC: init weights → native infer on x_test → stream to Loom → compare outputs.
+train_samples: 64
+test_samples: 100
+max_seq_len: 8
+max_input_size: 8
+output_dim: 64
+epochs: 0
+batch_size: 32
+learning_rate: 0.01
+
+engines:
+  - id: pytorch
+    enabled: true
+  - id: tensorflow
+    enabled: true
+  - id: jax
+    enabled: true
+
+# Single LSTM cells (Loom semantics: i,f,g,o gates, zero initial state).
+models:
+  - id: lstm_4_4_4
+    input_size: 4
+    hidden_size: 4
+    seq_len: 4
+
+  - id: lstm_8_4_8
+    input_size: 8
+    hidden_size: 4
+    seq_len: 8
+
+  - id: lstm_4_8_4
+    input_size: 4
+    hidden_size: 8
+    seq_len: 4
+
+  - id: lstm_8_8_8
+    input_size: 8
+    hidden_size: 8
+    seq_len: 8
