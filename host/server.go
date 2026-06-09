@@ -12,17 +12,24 @@ import (
 type Server struct {
 	denseStore     *Store
 	cnn1Store      *Store
+	cnn2Store      *Store
 	denseModelsDir string
 	cnn1ModelsDir  string
+	cnn2ModelsDir  string
 	mux            *http.ServeMux
 }
 
-func NewServer(denseStore, cnn1Store *Store, denseModelsDir, cnn1ModelsDir string) *Server {
+func NewServer(
+	denseStore, cnn1Store, cnn2Store *Store,
+	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir string,
+) *Server {
 	s := &Server{
 		denseStore:     denseStore,
 		cnn1Store:      cnn1Store,
+		cnn2Store:      cnn2Store,
 		denseModelsDir: denseModelsDir,
 		cnn1ModelsDir:  cnn1ModelsDir,
+		cnn2ModelsDir:  cnn2ModelsDir,
 		mux:            http.NewServeMux(),
 	}
 	s.routes()
@@ -38,7 +45,11 @@ func (s *Server) allReports() []Report {
 	for i := range cnn1 {
 		cnn1[i].Bedrock = "cnn1"
 	}
-	return append(dense, cnn1...)
+	cnn2, _ := s.cnn2Store.LoadAll()
+	for i := range cnn2 {
+		cnn2[i].Bedrock = "cnn2"
+	}
+	return append(append(dense, cnn1...), cnn2...)
 }
 
 func (s *Server) Handler() http.Handler { return s.mux }
@@ -51,11 +62,13 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/reports", s.handleReports)
 	s.mux.HandleFunc("GET /api/v1/compare", s.handleCompare)
 	s.mux.HandleFunc("GET /api/v1/compare/cnn1", s.handleCompareCNN1)
+	s.mux.HandleFunc("GET /api/v1/compare/cnn2", s.handleCompareCNN2)
 	s.mux.HandleFunc("GET /api/v1/compare.txt", s.handleCompareText)
 	s.mux.HandleFunc("GET /api/v1/loom/catalog", s.handleLoomCatalog)
 	s.mux.HandleFunc("POST /api/v1/loom/import", s.handleLoomImport)
 	s.mux.HandleFunc("POST /api/v1/loom/stream", s.handleLoomImport)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/cnn1", s.handleCNN1Stream)
+	s.mux.HandleFunc("POST /api/v1/loom/stream/cnn2", s.handleCNN2Stream)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -86,8 +99,11 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		report.SampleCount = len(report.Outputs)
 	}
 	store := s.denseStore
-	if report.Bedrock == "cnn1" {
+	switch report.Bedrock {
+	case "cnn1":
 		store = s.cnn1Store
+	case "cnn2":
+		store = s.cnn2Store
 	}
 	path, err := store.Save(report)
 	if err != nil {
@@ -107,6 +123,10 @@ func (s *Server) handleCompare(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleCompareCNN1(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, CompareReports(filterBedrock(s.allReports(), "cnn1")))
+}
+
+func (s *Server) handleCompareCNN2(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, CompareReports(filterBedrock(s.allReports(), "cnn2")))
 }
 
 func (s *Server) handleCompareText(w http.ResponseWriter, r *http.Request) {

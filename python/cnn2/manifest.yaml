@@ -1,0 +1,48 @@
+fixture_version: cnn2_bedrock_v1
+seed: 42
+train_samples: 2000
+test_samples: 100
+input_channels: 1
+max_spatial: 32
+output_dim: 8
+epochs: 30
+batch_size: 32
+learning_rate: 0.01
+
+engines:
+  - id: pytorch
+    enabled: true
+  - id: tensorflow
+    enabled: true
+  - id: jax
+    enabled: true
+
+# Single Conv2d layers (kernel = H = W → 1×1 spatial, flat output = filters).
+models:
+  - id: conv2_8_4
+    input_channels: 1
+    height: 8
+    width: 8
+    layers:
+      - {kind: cnn2, filters: 4, kernel_size: 8, stride: 1, padding: 0, activation: linear, bias: false}
+
+  - id: conv2_16_4
+    input_channels: 1
+    height: 16
+    width: 16
+    layers:
+      - {kind: cnn2, filters: 4, kernel_size: 16, stride: 1, padding: 0, activation: relu, bias: false}
+
+  - id: conv2_16_8_relu
+    input_channels: 1
+    height: 16
+    width: 16
+    layers:
+      - {kind: cnn2, filters: 8, kernel_size: 16, stride: 1, padding: 0, activation: relu, bias: false}
+
+  - id: conv2_32_8
+    input_channels: 1
+    height: 32
+    width: 32
+    layers:
+      - {kind: cnn2, filters: 8, kernel_size: 32, stride: 1, padding: 0, activation: linear, bias: false}

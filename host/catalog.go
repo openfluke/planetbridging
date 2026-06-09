@@ -36,19 +36,24 @@ type LoomImportRow struct {
 	ReportEngines []string           `json:"report_engines"`
 }
 
-// Dashboard is all data for the compare UI (dense + cnn1 tabs).
+// Dashboard is all data for the compare UI (dense + cnn1 + cnn2 tabs).
 type Dashboard struct {
 	Tab           string
 	Fixture       FixtureInfo
 	CNN1Fixture   FixtureInfo
+	CNN2Fixture   FixtureInfo
 	Dense         DenseComparisonSummary
 	CNN1          DenseComparisonSummary
+	CNN2          DenseComparisonSummary
 	Loom          LoomDashboardStats
 	CNN1Loom      LoomDashboardStats
+	CNN2Loom      LoomDashboardStats
 	LoomRows      []LoomImportRow
 	CNN1LoomRows  []LoomImportRow
+	CNN2LoomRows  []LoomImportRow
 	ModelsDir     string
 	CNN1ModelsDir string
+	CNN2ModelsDir string
 }
 
 func computeLoomStats(dense DenseComparisonSummary, rows []LoomImportRow) LoomDashboardStats {
@@ -201,9 +206,11 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	all := s.allReports()
 	denseRep := filterBedrock(all, "dense")
 	cnn1Rep := filterBedrock(all, "cnn1")
+	cnn2Rep := filterBedrock(all, "cnn2")
 
 	dense := SortDenseSummary(CompareDensePipeline(denseRep))
 	cnn1 := SortDenseSummary(CompareDensePipeline(cnn1Rep))
+	cnn2 := SortDenseSummary(CompareDensePipeline(cnn2Rep))
 
 	fixture := DefaultFixtureInfo()
 	if dense.FixtureVersion != "" {
@@ -217,6 +224,14 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if cnn1.FixtureVersion != "" {
 		cnn1Fixture.Version = cnn1.FixtureVersion
 	}
+	cnn2Fixture := FixtureInfo{
+		Version: "cnn2_bedrock_v1",
+		Seed:    42,
+		Note:    "2D conv bedrock — shared synthetic grids (NCHW), planets: pytorch · tensorflow · jax.",
+	}
+	if cnn2.FixtureVersion != "" {
+		cnn2Fixture.Version = cnn2.FixtureVersion
+	}
 
 	denseRows, err := ScanSavedModels(s.denseModelsDir, denseRep)
 	if err != nil {
@@ -226,18 +241,27 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if err != nil {
 		return Dashboard{}, err
 	}
+	cnn2Rows, err := ScanSavedModels(s.cnn2ModelsDir, cnn2Rep)
+	if err != nil {
+		return Dashboard{}, err
+	}
 	return Dashboard{
 		Tab:           tab,
 		Fixture:       fixture,
 		CNN1Fixture:   cnn1Fixture,
+		CNN2Fixture:   cnn2Fixture,
 		Dense:         dense,
 		CNN1:          cnn1,
+		CNN2:          cnn2,
 		Loom:          computeLoomStats(dense, denseRows),
 		CNN1Loom:      computeLoomStats(cnn1, cnn1Rows),
+		CNN2Loom:      computeLoomStats(cnn2, cnn2Rows),
 		LoomRows:      denseRows,
 		CNN1LoomRows:  cnn1Rows,
+		CNN2LoomRows:  cnn2Rows,
 		ModelsDir:     s.denseModelsDir,
 		CNN1ModelsDir: s.cnn1ModelsDir,
+		CNN2ModelsDir: s.cnn2ModelsDir,
 	}, nil
 }
 
