@@ -239,6 +239,7 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     <a href="/?tab=cnn3" {{if eq .Tab "cnn3"}}class="active"{{end}}>CNN3</a>
     <a href="/?tab=mha" {{if eq .Tab "mha"}}class="active"{{end}}>MHA</a>
     <a href="/?tab=lstm" {{if eq .Tab "lstm"}}class="active"{{end}}>LSTM</a>
+    <a href="/?tab=rnn" {{if eq .Tab "rnn"}}class="active"{{end}}>RNN</a>
   </div>
   {{if eq .Tab "cnn1"}}
   <h1>CNN1 — planet pipeline compare</h1>
@@ -295,6 +296,20 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
   <div class="pipeline-hint">
     Planets: <strong>pytorch · tensorflow · jax</strong>.
   Stream: <code>POST /api/v1/loom/stream/lstm</code> · <a href="/PROGRESS.md">PROGRESS.md</a>
+  </div>
+  {{else if eq .Tab "rnn"}}
+  <h1>RNN — planet pipeline compare</h1>
+  <div class="meta">
+    fixture <strong>{{.RNNFixture.Version}}</strong>
+    · {{.RNN.ReportCount}} pipeline reports
+    · {{.RNNLoom.EntityFileCount}} <code>.entity</code>
+    · {{.RNNLoom.LoomReportCount}} loom reports
+    · {{.RNNLoom.PendingLoomSteps}} pending stream
+  </div>
+  <div class="fixture-banner"><strong>RNN bedrock (tanh cell).</strong> {{.RNNFixture.Note}}</div>
+  <div class="pipeline-hint">
+    Planets: <strong>pytorch · tensorflow · jax</strong>.
+  Stream: <code>POST /api/v1/loom/stream/rnn</code> · <a href="/PROGRESS.md">PROGRESS.md</a>
   </div>
   {{else if eq .Tab "mha"}}
   <h1>MHA — planet pipeline compare</h1>
@@ -504,6 +519,53 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
   <div class="empty">No LSTM reports yet.<br><br><code>go run .</code><br><code>./python/lstm/run_lstm.sh</code></div>
 {{else}}
   {{range .LSTM.Models}}
+  <section class="model">
+    <h2>{{.ModelID}}</h2>
+    {{range .Pipelines}}
+    <div class="planet-block">
+      <div class="planet-head">{{.Planet}} pipeline</div>
+      <div class="steps">{{range .Steps}}<span class="{{stepClass .Stage}}">{{stepLabel .Stage .Format}} ✓</span>{{end}}</div>
+      <table>
+        <thead><tr><th>Compare</th><th>From</th><th>To</th><th>Max abs diff</th><th>Mean abs diff</th></tr></thead>
+        <tbody>
+          {{range .Compare}}
+          <tr class="{{compareClass .}}">
+            <td><span class="badge {{compareClass .}}">{{compareLabel .}}</span></td>
+            <td>{{.FromStage}} / {{.FromFormat}}</td>
+            <td>{{toLabel .}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MaxAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MaxAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MaxAbsDiff}}</div></div>{{end}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MeanAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MeanAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MeanAbsDiff}}</div></div>{{end}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+  </section>
+  {{end}}
+{{end}}
+{{else if eq .Tab "rnn"}}
+{{if .RNNLoomRows}}
+<section class="loom-catalog">
+  <h2>Loom entity checkpoints ({{.RNNModelsDir}})</h2>
+  <table>
+    <thead><tr><th>Model</th><th>Planet</th><th>.entity</th><th>Loom report</th></tr></thead>
+    <tbody>
+      {{range .RNNLoomRows}}{{range .Planets}}
+      <tr>
+        <td>{{.ModelID}}</td><td>{{.Engine}}</td>
+        <td class="mono">{{if .EntityFiles}}{{index .EntityFiles 0}}{{else}}—{{end}}</td>
+        <td>{{if .HasLoomReport}}<span class="loom-yes">✓</span>{{else}}<span class="loom-no">pending</span>{{end}}</td>
+      </tr>
+      {{end}}{{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{if not .RNN.Models}}
+  <div class="empty">No RNN reports yet.<br><br><code>go run .</code><br><code>./python/rnn/run_rnn.sh</code></div>
+{{else}}
+  {{range .RNN.Models}}
   <section class="model">
     <h2>{{.ModelID}}</h2>
     {{range .Pipelines}}

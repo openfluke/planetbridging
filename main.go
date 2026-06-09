@@ -38,6 +38,7 @@ func runHost() {
 	cnn3Reports := flag.String("cnn3-reports", defaultCNN3ReportsDir(), "cnn3 JSON reports dir")
 	mhaReports := flag.String("mha-reports", defaultMHAReportsDir(), "mha JSON reports dir")
 	lstmReports := flag.String("lstm-reports", defaultLSTMReportsDir(), "lstm JSON reports dir")
+	rnnReports := flag.String("rnn-reports", defaultRNNReportsDir(), "rnn JSON reports dir")
 	flag.Parse()
 
 	denseStore, err := host.NewStore(*denseReports)
@@ -64,10 +65,14 @@ func runHost() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	rnnStore, err := host.NewStore(*rnnReports)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	srv := host.NewServer(
-		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore,
-		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(),
+		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore,
+		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(),
 	)
 	log.Printf("planetbridging host listening on %s", *addr)
 	log.Printf("Compare UI → http://localhost%s/", *addr)
@@ -101,6 +106,10 @@ func defaultLSTMReportsDir() string {
 	return bedrockPath("lstm", "reports")
 }
 
+func defaultRNNReportsDir() string {
+	return bedrockPath("rnn", "reports")
+}
+
 func defaultDenseModelsDir() string {
 	return bedrockPath("dense", "models")
 }
@@ -123,6 +132,10 @@ func defaultMHAModelsDir() string {
 
 func defaultLSTMModelsDir() string {
 	return bedrockPath("lstm", "models")
+}
+
+func defaultRNNModelsDir() string {
+	return bedrockPath("rnn", "models")
 }
 
 func bedrockPath(bedrock, sub string) string {

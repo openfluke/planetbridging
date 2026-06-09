@@ -4,7 +4,7 @@ Living doc for what works, what does not, and what we are building next — **la
 
 Update this file when a planet/step/layer type moves status. The compare UI at http://localhost:9876/ is the live scoreboard; this file is the narrative.
 
-> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, and **LSTM** bedrocks are live (v1 POC). **RNN** (and everything below) are **not started** — each is roughly another full bedrock program like `python/dense/`.
+> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, **LSTM**, and **RNN** bedrocks are live (v1 POC). Further layer types are **not started** — each is roughly another full bedrock program like `python/dense/`.
 
 ---
 
@@ -40,7 +40,7 @@ native → onnx → safetensors → loom entity   ❌
 | Path | Status | Notes |
 |------|--------|-------|
 | native → export (on disk) | ✅ dense bedrock | Proves save/reload did not corrupt weights |
-| native → loom / entity (layer stream) | ✅ dense, cnn1–3, mha, lstm | Python reads **live in-memory** weights; Go builds `.stream.entity` |
+| native → loom / entity (layer stream) | ✅ dense, cnn1–3, mha, lstm, rnn | Python reads **live in-memory** weights; Go builds `.stream.entity` |
 | onnx file → loom entity | ⬜ | No Go importer wired in compare-host |
 | safetensors file → loom entity | ⬜ | No Go importer wired in compare-host (`.safetensors.entity` files on disk are experiments, not reported) |
 | loom entity → export | ⬜ | Export back to planets not started |
@@ -61,7 +61,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 | **CNN3** | ✅ `python/cnn3/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/cnn3` | ✅ cnn3 tab | 🟡 POC |
 | **MHA** | ✅ `python/mha/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/mha` | ✅ mha tab | 🟡 POC |
 | **LSTM** | ✅ `python/lstm/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/lstm` | ✅ lstm tab | 🟡 POC |
-| **RNN** | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |
+| **RNN** | ✅ `python/rnn/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/rnn` | ✅ rnn tab | 🟡 POC |
 
 **Also in Loom (not on planet-bridge roadmap yet):** SwiGLU, Embedding, Residual — needed for full transformers but deferred until MHA + Dense paths exist.
 
@@ -72,7 +72,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 3. ~~**CNN3**~~ — ✅ done
 4. ~~**MHA**~~ — ✅ done (2026-06-09)
 5. ~~**LSTM**~~ — ✅ done (2026-06-09)
-6. **RNN** — simpler recurrent cell; same state threading lessons as LSTM
+6. ~~**RNN**~~ — ✅ done (2026-06-09)
 
 ---
 
@@ -91,6 +91,26 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 | Go `BuildNetworkFromStream` | Dense only | Map to `VolumetricLayer` CNN/MHA/… |
 | `.entity` save/load + infer | ✅ dense MLP path | Per-layer infer helper |
 | Compare host UI tab | Dense pipeline view | New tab or filter per layer type |
+
+---
+
+### RNN — ✅ v1 bedrock
+
+**Bedrock:** `python/rnn/` · fixture `rnn_bedrock_v1` · 4 single-cell models · pytorch / tensorflow / jax · **`[N, seq, input_size]`** fixtures.
+
+**Run:** `go run .` then `./python/rnn/run_rnn.sh` · UI tab: http://localhost:9876/?tab=rnn
+
+| Planet | Export | Loom stream | Status |
+|--------|--------|-------------|--------|
+| PyTorch | — (native `nn.RNN`) | ✅ | ✅ 4/4 PASS |
+| TensorFlow | — (reference forward) | ✅ | ✅ 4/4 PASS |
+| JAX | — (reference forward) | ✅ | ✅ 4/4 PASS |
+
+**Scope (v1):** single vanilla RNN matching Loom layout (**W_ih + W_hh + b_h**), **tanh** activation, zero initial hidden. `epochs: 0` — init weights, infer on shared `x_test`, stream to Go.
+
+**Models:** `rnn_4_4_4`, `rnn_8_4_8`, `rnn_4_8_4`, `rnn_8_8_8`.
+
+**Out of scope (v1):** GRU, bidirectional, stacked RNN, training loops, export checkpoints.
 
 ---
 
@@ -244,15 +264,13 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 
 ---
 
-### RNN — ⬜ not started
+### RNN design notes (original plan — now ✅ v1 above)
 
-**Loom:** `VolumetricLayer` RNN · simpler than LSTM but same time/state issues.
+**Loom:** `VolumetricLayer` RNN · `h_t = tanh(x_t W_ih^T + h_{t-1} W_hh^T + b)`.
 
-**Planet ops:** `nn.RNN`, `nn.GRU` (GRU is not Loom RNN — scope call needed), Keras `SimpleRNN`, ONNX `RNN`.
+**Hard parts (addressed in v1):** single weight pack `[ih | hh | bias]`; PyTorch `nn.RNN` tanh with bias in `bias_ih_l0` only; zero initial hidden; per-sample batch=1 Loom infer.
 
-**Hard parts:** same recurrent streaming as LSTM with different weight count; some planets push you toward LSTM/GRU only; TF deprecated `SimpleRNN` in places.
-
-**Bedrock idea:** minimal tanh RNN, short sequences — prove state threading before LSTM.
+**Still deferred:** GRU (different Loom layer), bidirectional, TF/Keras native `SimpleRNN` (TF uses reference forward), stacked cells, export graphs.
 
 ---
 
@@ -316,6 +334,8 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 | `InferMHAStack` | ✅ | batch=1 per sample (KV isolation) |
 | `BuildNetworkFromLSTMStream` | ✅ | i/f/g/o gates → `LayerLSTM` |
 | `InferLSTMStack` | ✅ | batch=1 per sample |
+| `BuildNetworkFromRNNStream` | ✅ | ih/hh/bias → `LayerRNN` |
+| `InferRNNStack` | ✅ | batch=1 per sample |
 | `SaveEntity` / `LoadEntity` | ✅ | Biases in `bridge.dense.N.biases` blobs |
 | `InferDenseMLP` | ✅ | Bias before activation |
 | Fixture loader (`fixtures/*.npz`) | ✅ | Shared `x_test` for compare |
@@ -335,6 +355,8 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 | MHA compare tab | ✅ |
 | `POST /api/v1/loom/stream/lstm` | ✅ |
 | LSTM compare tab | ✅ |
+| `POST /api/v1/loom/stream/rnn` | ✅ |
+| RNN compare tab | ✅ |
 | Loom entity catalog table | ✅ |
 | Pending loom rows when stream not run | ✅ |
 
@@ -365,9 +387,20 @@ Artifact: `python/dense/models/pytorch/mlp_32_16_4_relu/mlp_32_16_4_relu.stream.
 6. ~~CNN3 bedrock (micro volume).~~ ✅ (2026-06-09)
 7. ~~MHA bedrock (single attention block).~~ ✅ (2026-06-09) — 12/12 loom PASS
 8. ~~LSTM bedrock (single cell).~~ ✅ (2026-06-09) — 12/12 loom PASS
-9. RNN bedrock.
+9. ~~RNN bedrock (single cell).~~ ✅ (2026-06-09) — 12/12 loom PASS
 
 Do **not** assume dense stream API generalizes — each layer type gets explicit schema fields and Go builder code.
+
+---
+
+## Per-model loom log — RNN (`rnn_bedrock_v1`)
+
+| Model ID | PyTorch | TensorFlow | JAX |
+|----------|---------|------------|-----|
+| `rnn_4_4_4` | ✅ PASS | ✅ PASS | ✅ PASS |
+| `rnn_8_4_8` | ✅ PASS | ✅ PASS | ✅ PASS |
+| `rnn_4_8_4` | ✅ PASS | ✅ PASS | ✅ PASS |
+| `rnn_8_8_8` | ✅ PASS | ✅ PASS | ✅ PASS |
 
 ---
 
