@@ -100,6 +100,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/compare/lstm", s.handleCompareLSTM)
 	s.mux.HandleFunc("GET /api/v1/compare/rnn", s.handleCompareRNN)
 	s.mux.HandleFunc("GET /api/v1/compare.txt", s.handleCompareText)
+	s.mux.HandleFunc("GET /api/v1/export/all.txt", s.handleExportAllText)
 	s.mux.HandleFunc("GET /api/v1/loom/catalog", s.handleLoomCatalog)
 	s.mux.HandleFunc("POST /api/v1/loom/import", s.handleLoomImport)
 	s.mux.HandleFunc("POST /api/v1/loom/stream", s.handleLoomImport)
@@ -191,7 +192,19 @@ func (s *Server) handleCompareText(w http.ResponseWriter, r *http.Request) {
 		bedrock = "dense"
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte(FormatComparisonText(CompareReports(filterBedrock(s.allReports(), bedrock)))))
+	_, _ = w.Write([]byte(FormatBedrockComparisonText(bedrock, CompareReports(filterBedrock(s.allReports(), bedrock)))))
+}
+
+func (s *Server) handleExportAllText(w http.ResponseWriter, r *http.Request) {
+	all := s.allReports()
+	summaries := make(map[string]DenseComparisonSummary, len(AllBedrockIDs))
+	for _, id := range AllBedrockIDs {
+		summaries[id] = SortDenseSummary(CompareDensePipeline(filterBedrock(all, id)))
+	}
+	body := FormatAllComparisonText(Version, summaries)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="planetbridging-compare-all.txt"`)
+	_, _ = w.Write([]byte(body))
 }
 
 func filterBedrock(reports []Report, bedrock string) []Report {

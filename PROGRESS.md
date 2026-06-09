@@ -4,7 +4,9 @@ Living doc for what works, what does not, and what we are building next — **la
 
 Update this file when a planet/step/layer type moves status. The compare UI at http://localhost:9876/ is the live scoreboard; this file is the narrative.
 
-> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, **LSTM**, and **RNN** bedrocks are live (v1 POC). Further layer types are **not started** — each is roughly another full bedrock program like `python/dense/`.
+> **Planet Bridging v0.5.0** — planets → Loom (all 7 core layers). **v1.0** = Loom → other engines. **v1.x–2.0** = file import, extra layers, gaps. See [`README.md`](./README.md#version-roadmap-how-we-count-halves).
+>
+> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, **LSTM**, and **RNN** bedrocks are live (layer POCs). Further layer types are **not started** — each is roughly another full bedrock program like `python/dense/`.
 
 ---
 

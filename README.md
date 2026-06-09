@@ -4,66 +4,141 @@
 
 Each major AI runtime is a "planet" — PyTorch, TensorFlow, llama.cpp, ONNX Runtime, CoreML, and others each speak their own file formats, operator dialects, and execution models. Models don't travel freely; they get converted, lose fidelity, or stay locked to one engine.
 
-This repo maps those planets, scopes their file formats, and builds **bidirectional bridges** so models can flow **into Loom**, run on Loom's deterministic volumetric runtime, and flow **back out** to other engines — without abandoning pure Go and zero CGO.
+This repo maps those planets, scopes their file formats, and builds bridges so models can flow **into Loom**, run on Loom's deterministic volumetric runtime, and (later) flow **back out** to other engines — without abandoning pure Go and zero CGO.
 
-The dense bedrock Python layer is where that fracture is visible day to day: **five conda envs**, incompatible frameworks, shell glue — vs **`go run .`** for the compare host with zero external deps. See [`python/dense/README.md#why-conda-the-python-dependency-problem`](./python/dense/README.md#why-conda-the-python-dependency-problem).
-
-Research and format deep-dives live in [`rnd/`](./rnd/README.md).
-
-Architecture diagram (Python planets → numerics → Loom, step 1 vs bidirectional endgoal): [`BRIDGE.md`](./BRIDGE.md).
+Research and format deep-dives live in [`rnd/`](./rnd/README.md). Architecture diagrams: [`BRIDGE.md`](./BRIDGE.md). Live scoreboard: [`PROGRESS.md`](./PROGRESS.md).
 
 ---
 
-## Quick start — Dense tab
+## Release — v0.5.0 (planets → Loom)
 
-Each **planet** (TensorFlow, PyTorch, …) trains on the **same shared data**, then we compare steps in that planet's pipeline — not TensorFlow vs PyTorch:
+**Planet Bridging v0.5.0** is the **first half** of the hub: every **core volumetric layer type Loom executes natively** has a bedrock that proves **planet → Loom** works on shared fixtures.
 
-**native** → **export** (SavedModel, ONNX, …) and **loom / entity** (live layer stream) — parallel paths; see [`PROGRESS.md`](./PROGRESS.md)
+| | |
+|---|---|
+| **Version** | `0.5.0` ([`host/version.go`](./host/version.go)) |
+| **Loom** | v0.79 — Dense, CNN1/2/3, MHA, LSTM, RNN |
+| **This release** | **Into Loom only** — live weight stream → `.stream.entity` → Loom infer → compare vs native |
+| **Not in v0.5.0** | File-based import, **Loom → any engine** export |
 
-**Planet-side bedrock is done** for the current scope — five engines, twelve models, train/skip/report. See [`python/dense/README.md`](./python/dense/README.md) for layout, per-engine artifacts, run observations, conda/dependency reality, and the Go/Loom contrast.
+**v0.5.0 in one sentence:** seven layer bedrocks, three Python planets (plus sklearn on Dense), one Go compare host, 100 shared test samples per model — native and Loom outputs must match within fp32 tolerance (`< 1e-5`).
+
+### Version roadmap (how we count halves)
+
+Bidirectional bridging is two big arcs. We number them in **0.5 steps** so the version tells you which direction works:
+
+| Version | Direction | What it means |
+|---------|-----------|---------------|
+| **0.5.0** | **Planets → Loom** | Live stream bedrocks, compare host, all 7 core layers — **this release** |
+| **1.0.0** | **Loom → other AI engines** | Export from Loom → ONNX / Safetensors / GGUF → ORT, llama.cpp, CoreML, … — bidirectional hub |
+| **1.x → 2.0** | **Everything we skipped** | File import without live Python, extra layer types (SwiGLU, Embedding, …), more planets, lossy-path docs, polish |
+
+So **0.5 + 0.5 ≈ 1.0** for the two directions; **1 → 2** is completeness, not a third direction.
+
+---
+
+## What works with what (v0.5.0)
+
+Each cell is **native infer + live stream to Loom** on the same `x_test` fixture. Compare labels: `PASS` / `EXACT` / `DIFF` — see [`PROGRESS.md`](./PROGRESS.md) for per-model detail.
+
+| Loom layer | Bedrock | PyTorch | TensorFlow | JAX | sklearn | Loom stream | Loom compare |
+|------------|---------|:-------:|:----------:|:---:|:-------:|:-----------:|:------------:|
+| **Dense** | `python/dense/` | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 43/48 PASS |
+| **CNN1** | `python/cnn1/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 12/12 |
+| **CNN2** | `python/cnn2/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 12/12 |
+| **CNN3** | `python/cnn3/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 12/12 |
+| **MHA** | `python/mha/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 12/12 |
+| **LSTM** | `python/lstm/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 12/12 |
+| **RNN** | `python/rnn/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 12/12 |
+
+**Planets:** PyTorch · TensorFlow · JAX run all seven bedrocks. sklearn runs Dense only. Paddle is disabled.
+
+**Mechanism (all layers):** Python reads **live in-memory weights** → JSON layer stream → Go `bridge.BuildNetworkFrom*Stream` → `.stream.entity` → Loom forward on shared `x_test`. This is **not** a training chain and **not** onnx → safetensors → loom.
+
+```mermaid
+flowchart LR
+  subgraph NOW["v0.5.0 — INTO Loom ✅"]
+    direction TB
+    P["Planets<br/>PyTorch · TF · JAX · sklearn"]
+    B["7 bedrocks<br/>Dense · CNN1/2/3 · MHA · LSTM · RNN"]
+    S["Live layer stream<br/>POST /api/v1/loom/stream/*"]
+    E[".stream.entity"]
+    L["Loom infer"]
+    C["Compare UI<br/>native vs loom PASS"]
+    P --> B --> S --> E --> L --> C
+  end
+
+  subgraph LATER["v1.0 — OUT of Loom ⬜"]
+    direction TB
+    L2["Loom hub"]
+    H["Hub formats<br/>ONNX · Safetensors · GGUF"]
+    X["Any AI engine<br/>ORT · llama.cpp · CoreML · …"]
+    L2 -.->|"export"| H -.-> X
+    X -.->|"file import"| L2
+  end
+
+  L --> L2
+
+  classDef done fill:#c8e6c9,stroke:#388e3c
+  classDef todo fill:#fce4ec,stroke:#c62828,stroke-dasharray:5 5
+  class NOW done
+  class LATER todo
+```
+
+View interactively: [mermaid.live](https://mermaid.live).
+
+---
+
+## Quick start
 
 ```bash
 cd planetbridging
 
-# 1. Start the compare website (default port 9876)
+# Compare host (pure Go, port 9876)
 go run .
-./killserver.sh                 # stop it when done
+./killserver.sh                 # stop when done
 
-# 2. Open http://localhost:9876/
+# Open dashboard — tabs: dense · cnn1 · cnn2 · cnn3 · mha · lstm · rnn
+open http://localhost:9876/
 
-# 3. Train planets and push pipeline reports
-./python/dense/setup_conda.sh   # once
-./python/dense/run_dense.sh     # all engines; starts host if needed
+# Run a bedrock (starts host if needed)
+./python/dense/run_dense.sh
+./python/cnn1/run_cnn1.sh
+./python/mha/run_mha.sh
+./python/lstm/run_lstm.sh
+./python/rnn/run_rnn.sh
 ```
 
-`go run . host` is the same as `go run .`. Flags: `-addr :9876`, `-reports python/dense/reports`.
+Dense also needs `./python/dense/setup_conda.sh` once. Each other bedrock creates its own `pb-<layer>-<engine>` conda env on first run.
+
+`go run . host` is the same as `go run .`. Flags: `-addr :9876`, per-bedrock `-reports` / `-models` dirs — see [`main.go`](./main.go).
 
 ---
 
 ## What we're doing here
 
-1. **Map the AI solar system** — catalog the most popular training frameworks and inference engines, and the file formats each planet uses to store topology + weights.
+1. **Map the AI solar system** — catalog training frameworks, inference engines, and the file formats each planet uses.
 
-2. **Build the bridge** — implement loaders, exporters, and conversion paths so Loom sits at the center as a hub, not a dead end.
+2. **Prove planet → Loom (v0.5.0)** — for every core Loom layer type, stream live weights into `.entity` and verify Loom matches native on shared fixtures. **Done for this release.**
 
-3. **Bidirectional Loom I/O** — explore a planet-bridging layer in Loom that can:
-   - **Import** from external engines (Safetensors, ONNX, GGUF, PyTorch, Keras, …) → Loom `VolumetricNetwork`
-   - **Export** from Loom → external formats other engines can consume
+3. **Loom → other engines (v1.0)** — the other half:
+   - **Import** from checkpoint files (Safetensors, ONNX, GGUF, Keras, …) without a live Python planet
+   - **Export** from Loom → hub formats → any inference engine
    - Round-trip where possible; document lossy paths where not
 
-4. **Focus on core layer types first** — universal bridging starts with the dense main layers Loom already executes natively:
+4. **Core layer types — all bridged in v0.5.0:**
 
-   | Loom layer | Typical ops on other planets |
-   |------------|------------------------------|
-   | **Dense** | `MatMul`/`Gemm`/`FullyConnected` (ONNX), `nn.Linear` (PyTorch), `Dense` (Keras/TF) |
-   | **CNN1** | `Conv1d` (PyTorch), `Conv1D` (Keras), `Conv` 1D (ONNX) |
-   | **CNN2** | `Conv2d`, `Conv` 2D |
-   | **CNN3** | `Conv3d`, `Conv` 3D |
-   | **MHA** | `MultiHeadAttention`, `Attention`, `GroupQueryAttention` (ONNX/HF) |
-   | **LSTM** | `LSTM` cell (ONNX/PyTorch/TF) |
-   | **RNN** | `RNN`/`SimpleRNN` (ONNX/PyTorch/TF) |
+   | Loom layer | Typical ops on other planets | v0.5.0 bedrock |
+   |------------|------------------------------|----------------|
+   | **Dense** | `MatMul`/`Gemm`/`Linear` | ✅ `python/dense/` |
+   | **CNN1** | `Conv1d` | ✅ `python/cnn1/` |
+   | **CNN2** | `Conv2d` | ✅ `python/cnn2/` |
+   | **CNN3** | `Conv3d` | ✅ `python/cnn3/` |
+   | **MHA** | `MultiHeadAttention` (causal + RoPE POC) | ✅ `python/mha/` |
+   | **LSTM** | `LSTM` cell (i/f/g/o gates) | ✅ `python/lstm/` |
+   | **RNN** | `RNN` / `SimpleRNN` (tanh) | ✅ `python/rnn/` |
 
-   Transformer blocks (MHA + SwiGLU + RMSNorm) and vision stacks (CNN + Dense) are the first realistic cross-planet targets. Everything else layers on top.
+   Deferred (v1.x–2.0): SwiGLU, Embedding, Residual — needed for full transformers, built on top of these bedrocks later.
 
 ---
 
@@ -71,23 +146,18 @@ go run .
 
 Loom (v0.79) is a pure-Go Deterministic Neural Virtual Machine with native execution for Dense, CNN1/2/3, MHA, LSTM, RNN, and more across **21 DTypes**, with bit-packed **`model.json`** persistence.
 
-**Dtype reality check:** Python planets (PyTorch, TF, JAX, …) train almost exclusively in **FP32** (sklearn: FP64). They do not offer Loom-style per-layer dtype menus. Bedrock compares **float outputs at one precision** — not 21-type parity across engines. See [`python/dense/README.md`](./python/dense/README.md#numerical-types--planets-vs-loom-fml-tier).
+**Dtype reality check:** Python planets train in **FP32** (sklearn: FP64). Bedrock compares **float outputs at one precision** — not 21-type parity across engines. See [`python/dense/README.md`](./python/dense/README.md#numerical-types--planets-vs-loom-fml-tier).
 
 | Direction | Status | Detail |
 |-----------|--------|--------|
 | **Loom JSON ↔ Loom** | ✅ Native | Full topology + weights; train, save, reload, infer (all 21 dtypes) |
-| **Safetensors → Loom** | 🟡 Partial | Native loader; config-driven ingest for specific HF transformer families (MHA-heavy). Not yet generic for arbitrary Dense/CNN/RNN/LSTM checkpoints |
-| **GGUF → Loom** | ⬜ Unexplored | Parsers exist in Go; no Loom bridge yet |
-| **ONNX → Loom** | ⬜ Unexplored | Protobuf parse feasible; scoped op executor not wired |
-| **PyTorch `.pt` → Loom** | ⬜ Unexplored | state_dict via allowlisted unpickler is feasible; no bridge yet |
-| **Keras `.h5`/`.keras` → Loom** | ⬜ Unexplored | HDF5 in pure Go is now possible (`scigolib/hdf5`); no bridge yet |
-| **TF SavedModel → Loom** | ⬜ Unexplored | Hard (SSTable checkpoint index); frozen GraphDef easier |
-| **Loom → Safetensors** | ⬜ Unexplored | Export weights + sidecar config |
-| **Loom → ONNX** | ⬜ Unexplored | Map volumetric layers → ONNX nodes |
-| **Loom → GGUF** | ⬜ Unexplored | Metadata + quantized tensor writer |
-| **Loom → PyTorch / Keras / TFLite** | ⬜ Unexplored | Likely via ONNX or Safetensors as intermediate |
+| **Live planet stream → Loom** | ✅ v0.5.0 | All 7 core layers — `POST /api/v1/loom/stream` (+ `/cnn1` … `/rnn`) → `.stream.entity` |
+| **Safetensors → Loom** | 🟡 Partial | Native loader in main Loom tree; config-driven HF transformers only — not wired in compare-host |
+| **ONNX / GGUF / `.pt` / Keras file → Loom** | ⬜ v1.x | Pure-Go file importers — bedrock checkpoints on disk today are export-fidelity checks |
+| **Loom → Safetensors / ONNX / GGUF** | ⬜ v1.0 | Export — the other half of the hub |
+| **Loom → PyTorch / Keras / ORT / llama.cpp** | ⬜ v1.0 | Likely via hub formats as intermediate |
 
-**Goal:** fill the ⬜ cells for the focus layer types above, starting with **Dense + CNN + MHA + RNN + LSTM**.
+**v0.5.0 shipped:** planet → Loom for **Dense + CNN1/2/3 + MHA + LSTM + RNN**. **v1.0 target:** Loom → any engine. **v1.x–2.0:** file import, extra layers, gaps we deferred.
 
 ### Dense bedrock — stage 2 import targets
 
@@ -183,15 +253,17 @@ flowchart TB
     %% Loom native
     LOOM <-->|"native ✅"| LJ
 
-    %% Into Loom — partial
-    ST -->|"import 🟡 transformers only"| LOOM
+    %% Into Loom — v0.5.0 live stream
+    PT -->|"live stream ✅ v0.5.0"| LOOM
+    TF -->|"live stream ✅ v0.5.0"| LOOM
+    JAX -->|"live stream ✅ v0.5.0"| LOOM
 
-    %% Into Loom — unexplored
-    ONNX -.->|"import ⬜"| LOOM
-    GGUF -.->|"import ⬜"| LOOM
-    PT -.->|"import ⬜ state_dict"| LOOM
-    TF -.->|"import ⬜ h5 / SavedModel"| LOOM
-    JAX -.->|"import ⬜ via safetensors"| LOOM
+    %% Into Loom — file import (v1.x)
+    ST -->|"file import 🟡 HF only"| LOOM
+    ONNX -.->|"file import ⬜"| LOOM
+    GGUF -.->|"file import ⬜"| LOOM
+    PT -.->|"file import ⬜ state_dict"| LOOM
+    TF -.->|"file import ⬜ h5 / SavedModel"| LOOM
 
     %% Out of Loom — unexplored
     LOOM -.->|"export ⬜ weights"| ST
@@ -246,34 +318,33 @@ View interactively: copy the diagram into [mermaid.live](https://mermaid.live).
 
 ## Universal planet bridging — the plan
 
-The point of this repo is not to reimplement every engine. It is to make **Loom a bidirectional hub** for the layer types that matter most:
+The point of this repo is not to reimplement every engine. It is to make **Loom a bidirectional hub** for the layer types that matter most.
+
+**v0.5.0 (this release):**
+
+```
+Planet (PyTorch / TF / JAX)  ──live stream──►  VolumetricLayer *  ──►  .entity  ──►  Loom infer  ──►  PASS vs native
+```
+
+**v1.0 (other half — Loom out):**
 
 ```
 External planet                    Loom                         External planet
 ─────────────────    ─────────────────────────────    ─────────────────
 PyTorch Dense    ──►  VolumetricLayer Dense      ──►  ONNX MatMul
-Keras Conv2D     ──►  VolumetricLayer CNN2       ──►  GGUF (future)
+Keras Conv2D     ──►  VolumetricLayer CNN2       ──►  GGUF
 ONNX Attention   ──►  VolumetricLayer MHA        ──►  Safetensors + config
-TF LSTM          ──►  VolumetricLayer LSTM       ──►  Loom JSON (native)
+TF LSTM          ──►  VolumetricLayer LSTM       ──►  any inference engine
 ```
-
-**Pipeline (from rnd consensus):**
-
-1. **Detect** format (extension + magic bytes)
-2. **Parse** natively in Go where feasible (Safetensors, ONNX protobuf, GGUF, HDF5, allowlisted pickle)
-3. **Build** a universal topology AST — explicit graph (ONNX) or heuristic from tensor names + config (Safetensors/GGUF)
-4. **Map** AST nodes → Loom focus layers (Dense, CNN1/2/3, MHA, LSTM, RNN)
-5. **Execute** on Loom; optionally **export** back through the reverse mapping
 
 **Phased priorities** (see [`rnd/README.md`](./rnd/README.md) for detail):
 
-| Phase | Work | Unlocks |
-|-------|------|---------|
-| 1 | Safetensors read/write + sharded index | HF weight hub in/out |
-| 2 | GGUF reader + key dequant types | llama.cpp planet |
-| 3 | ONNX parse + scoped LLM/CNN op set | ONNX Runtime planet |
-| 4 | Focus-layer mappers (Dense, CNN, MHA, LSTM, RNN) | Universal bridging for core layers |
-| 5 | Loom → export (Safetensors, ONNX) | Bidirectional hub |
+| Phase | Work | Target version |
+|-------|------|----------------|
+| **A** | Live stream bedrocks — Dense, CNN1/2/3, MHA, LSTM, RNN | ✅ **0.5.0** |
+| **B** | Loom → export (Safetensors, ONNX, GGUF) → inference planets | **1.0.0** |
+| **C** | File-based import + Safetensors/GGUF/ONNX readers in compare-host | **1.x** |
+| **D** | Extra layers, more planets, lossy paths, hub polish | **1.x → 2.0** |
 
 ---
 
@@ -281,13 +352,16 @@ TF LSTM          ──►  VolumetricLayer LSTM       ──►  Loom JSON (nat
 
 | Path | Purpose |
 |------|---------|
-| [`host/`](./host/) | Compare dashboard HTTP server (`go run .`) |
-| [`python/dense/`](./python/dense/) | Multi-engine dense bedrock — see [`python/dense/README.md`](./python/dense/README.md) |
+| [`host/`](./host/) | Compare dashboard HTTP server (`go run .`) — v0.5.0 |
+| [`bridge/`](./bridge/) | Layer stream builders → `.entity`, fixtures, Loom infer (all 7 layer types) |
+| [`python/dense/`](./python/dense/) | Dense bedrock — 12 models × 4 planets |
+| [`python/cnn1/`](./python/cnn1/) · [`cnn2/`](./python/cnn2/) · [`cnn3/`](./python/cnn3/) | Conv bedrocks — 4 models × 3 planets each |
+| [`python/mha/`](./python/mha/) | MHA bedrock — causal + RoPE POC |
+| [`python/lstm/`](./python/lstm/) · [`python/rnn/`](./python/rnn/) | Recurrent bedrocks |
 | [`killserver.sh`](./killserver.sh) | Stop compare-host on `:9876` |
-| [`BRIDGE.md`](./BRIDGE.md) | Mermaid diagrams — planets, numerics, Loom hub; step 1 vs bidirectional endgoal |
-| [`rnd/`](./rnd/) | Automated R&D — format specs, feasibility, source PDFs, consolidated research |
-| [`PROGRESS.md`](./PROGRESS.md) | What works / what does not — updated layer-by-layer |
-| [`bridge/`](./bridge/) | Dense layer stream → `.entity`, fixture load, infer (live stream POC) |
+| [`BRIDGE.md`](./BRIDGE.md) | Architecture diagrams — step 1 vs bidirectional endgoal |
+| [`PROGRESS.md`](./PROGRESS.md) | Live scoreboard — per-model PASS/DIFF |
+| [`rnd/`](./rnd/) | Format research, pure-Go feasibility, roadmap |
 
 ---
 

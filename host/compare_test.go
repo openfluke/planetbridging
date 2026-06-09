@@ -1,6 +1,9 @@
 package host
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestDiffOutputsExact(t *testing.T) {
 	a := [][]float64{{1, 2}, {3, 4}}
@@ -45,6 +48,17 @@ func TestFormatDiffPlain(t *testing.T) {
 	}
 	if DiffScaleHint(5.960464e-07) != "~millionth — fp32 rounding noise" {
 		t.Fatalf("unexpected hint: %s", DiffScaleHint(5.960464e-07))
+	}
+}
+
+func TestFormatAllComparisonText(t *testing.T) {
+	summaries := map[string]DenseComparisonSummary{
+		"dense": {FixtureVersion: "dense_v1", ReportCount: 2, Models: []DenseModelComparison{{ModelID: "m1"}}},
+		"cnn1":  {FixtureVersion: "cnn1_v1", ReportCount: 1},
+	}
+	out := FormatAllComparisonText("0.5.0", summaries)
+	if !strings.Contains(out, "version=0.5.0") || !strings.Contains(out, "BEDROCK: dense") || !strings.Contains(out, "BEDROCK: cnn1") {
+		t.Fatalf("missing expected sections:\n%s", out)
 	}
 }
 

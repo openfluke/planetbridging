@@ -228,6 +228,26 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     font-weight: 600;
   }
   .tabs a.active { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
+  .header-actions {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .export-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    border: 1px solid #1e3a4a;
+    border-radius: 6px;
+    background: rgba(126, 200, 227, 0.12);
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .export-btn:hover { background: rgba(126, 200, 227, 0.22); }
+  .export-hint { color: var(--muted); font-size: 11px; }
 </style>
 </head>
 <body>
@@ -240,6 +260,10 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     <a href="/?tab=mha" {{if eq .Tab "mha"}}class="active"{{end}}>MHA</a>
     <a href="/?tab=lstm" {{if eq .Tab "lstm"}}class="active"{{end}}>LSTM</a>
     <a href="/?tab=rnn" {{if eq .Tab "rnn"}}class="active"{{end}}>RNN</a>
+  </div>
+  <div class="header-actions">
+    <a href="/api/v1/export/all.txt" class="export-btn" download="planetbridging-compare-all.txt">Export all tabs → .txt</a>
+    <span class="export-hint">dense · cnn1 · cnn2 · cnn3 · mha · lstm · rnn — all models &amp; compare rows</span>
   </div>
   {{if eq .Tab "cnn1"}}
   <h1>CNN1 — planet pipeline compare</h1>
@@ -717,6 +741,7 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
 
 <footer>
   JSON: <a href="/api/v1/compare">/api/v1/compare</a>
+  · export: <a href="/api/v1/export/all.txt" download="planetbridging-compare-all.txt">/api/v1/export/all.txt</a>
   · loom catalog: <a href="/api/v1/loom/catalog">/api/v1/loom/catalog</a>
   · stream: <code>POST /api/v1/loom/stream</code>
   · progress: <a href="/PROGRESS.md">/PROGRESS.md</a>

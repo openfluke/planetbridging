@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 )
 
 // FP32PassTolerance treats tiny float drift (ONNX, Loom entity infer) as pass in the UI.
@@ -277,9 +278,12 @@ func PipelineCompareClass(d PipelineStepDiff) string {
 	}
 }
 
-func FormatDenseComparisonText(summary DenseComparisonSummary) string {
+// AllBedrockIDs is tab order for full export.
+var AllBedrockIDs = []string{"dense", "cnn1", "cnn2", "cnn3", "mha", "lstm", "rnn"}
+
+func FormatBedrockComparisonText(bedrock string, summary DenseComparisonSummary) string {
 	var b fmtBuilder
-	b.Printf("Planet Bridging dense pipeline comparison\n")
+	b.Printf("Planet Bridging %s pipeline comparison\n", bedrock)
 	b.Printf("fixture=%s reports=%d\n\n", summary.FixtureVersion, summary.ReportCount)
 	for _, m := range summary.Models {
 		b.Printf("model %s\n", m.ModelID)
@@ -318,5 +322,28 @@ func CompareReports(reports []Report) DenseComparisonSummary {
 }
 
 func FormatComparisonText(summary DenseComparisonSummary) string {
-	return FormatDenseComparisonText(summary)
+	return FormatBedrockComparisonText("dense", summary)
 }
+
+// FormatAllComparisonText concatenates every bedrock tab into one log file.
+func FormatAllComparisonText(version string, summaries map[string]DenseComparisonSummary) string {
+	var b fmtBuilder
+	b.Printf("Planet Bridging — full compare export\n")
+	b.Printf("version=%s\n", version)
+	for i, id := range AllBedrockIDs {
+		s, ok := summaries[id]
+		if !ok {
+			continue
+		}
+		if i > 0 {
+			b.Printf("\n")
+		}
+		b.Printf("%s\n", strings.Repeat("=", 78))
+		b.Printf("BEDROCK: %s\n", id)
+		b.Printf("%s\n", strings.Repeat("=", 78))
+		b.Printf("\n")
+		b.Printf("%s", FormatBedrockComparisonText(id, s))
+	}
+	return b.String()
+}
+
