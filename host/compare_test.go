@@ -64,6 +64,14 @@ func TestRenderAllComparisonPDF(t *testing.T) {
 	}
 }
 
+func TestSanitizePDFText(t *testing.T) {
+	in := "PASS a/b → c/d  ≈ 0.001  (~millionth — fp32)"
+	want := "PASS a/b -> c/d  ~ 0.001  (~millionth - fp32)"
+	if got := sanitizePDFText(in); got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
 func TestFormatBedrockComparisonTextPlainDiff(t *testing.T) {
 	summary := CompareDensePipeline([]Report{
 		{Planet: "pytorch", Stage: "native", Format: "pytorch", ModelID: "m1", Outputs: [][]float64{{1}}},

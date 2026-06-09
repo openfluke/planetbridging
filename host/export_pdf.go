@@ -9,6 +9,18 @@ import (
 
 const pdfLineHeight = 3.6
 
+// sanitizePDFText maps Unicode punctuation to ASCII for fpdf core fonts (Latin-1 only).
+func sanitizePDFText(s string) string {
+	return strings.NewReplacer(
+		"—", "-", // em dash
+		"–", "-", // en dash
+		"≈", "~", // approximately
+		"→", "->",
+		"≥", ">=",
+		"·", ",",
+	).Replace(s)
+}
+
 // RenderAllComparisonPDF renders the full multi-bedrock compare log as a PDF.
 func RenderAllComparisonPDF(version string, summaries map[string]DenseComparisonSummary) ([]byte, error) {
 	text := FormatAllComparisonText(version, summaries)
@@ -24,7 +36,7 @@ func RenderAllComparisonPDF(version string, summaries map[string]DenseComparison
 	width := pageW - lm - rm
 
 	for _, line := range strings.Split(text, "\n") {
-		pdf.MultiCell(width, pdfLineHeight, line, "", "L", false)
+		pdf.MultiCell(width, pdfLineHeight, sanitizePDFText(line), "", "L", false)
 	}
 
 	var buf bytes.Buffer
