@@ -17,8 +17,8 @@ func TestHandleCompareLayerNormEmpty(t *testing.T) {
 		return s
 	}
 	s := NewServer(
-		mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(),
-		empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty,
+		mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(), mk(),
+		empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty, empty,
 	)
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/compare/layernorm", nil)
 	rec := httptest.NewRecorder()

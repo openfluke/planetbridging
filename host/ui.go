@@ -263,11 +263,12 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
     <a href="/?tab=layernorm" {{if eq .Tab "layernorm"}}class="active"{{end}}>LayerNorm</a>
     <a href="/?tab=embedding" {{if eq .Tab "embedding"}}class="active"{{end}}>Embedding</a>
     <a href="/?tab=rmsnorm" {{if eq .Tab "rmsnorm"}}class="active"{{end}}>RMSNorm</a>
+    <a href="/?tab=swiglu" {{if eq .Tab "swiglu"}}class="active"{{end}}>SwiGLU</a>
     <a href="/?tab=mixer" {{if eq .Tab "mixer"}}class="active"{{end}}>Mixer</a>
   </div>
   <div class="header-actions">
     <a href="/api/v1/export/all.pdf" class="export-btn" download="planetbridging-compare-all.pdf">Export all tabs → .pdf</a>
-    <span class="export-hint">dense · cnn1 · cnn2 · cnn3 · mha · lstm · rnn · layernorm · embedding · rmsnorm · mixer — all models &amp; compare rows</span>
+    <span class="export-hint">dense · cnn1 · cnn2 · cnn3 · mha · lstm · rnn · layernorm · embedding · rmsnorm · swiglu · mixer — all models &amp; compare rows</span>
   </div>
   {{if eq .Tab "cnn1"}}
   <h1>CNN1 — planet pipeline compare</h1>
@@ -380,6 +381,20 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
   <div class="pipeline-hint">
     Planets: <strong>pytorch · tensorflow · jax</strong>.
   Stream: <code>POST /api/v1/loom/stream/rmsnorm</code> · <a href="/PROGRESS.md">PROGRESS.md</a>
+  </div>
+  {{else if eq .Tab "swiglu"}}
+  <h1>SwiGLU — planet pipeline compare</h1>
+  <div class="meta">
+    fixture <strong>{{.SwiGLUFixture.Version}}</strong>
+    · {{.SwiGLU.ReportCount}} pipeline reports
+    · {{.SwiGLULoom.EntityFileCount}} <code>.entity</code>
+    · {{.SwiGLULoom.LoomReportCount}} loom reports
+    · {{.SwiGLULoom.PendingLoomSteps}} pending stream
+  </div>
+  <div class="fixture-banner"><strong>SwiGLU bedrock (gate · up · down).</strong> {{.SwiGLUFixture.Note}}</div>
+  <div class="pipeline-hint">
+    Planets: <strong>pytorch · tensorflow · jax</strong>.
+  Stream: <code>POST /api/v1/loom/stream/swiglu</code> · <a href="/PROGRESS.md">PROGRESS.md</a>
   </div>
   {{else if eq .Tab "mixer"}}
   <h1>Mixer — planet pipeline compare</h1>
@@ -650,6 +665,53 @@ var dashboardTmpl = template.Must(template.New("dashboard").Funcs(template.FuncM
   <div class="empty">No RNN reports yet.<br><br><code>go run .</code><br><code>./python/rnn/run_rnn.sh</code></div>
 {{else}}
   {{range .RNN.Models}}
+  <section class="model">
+    <h2>{{.ModelID}}</h2>
+    {{range .Pipelines}}
+    <div class="planet-block">
+      <div class="planet-head">{{.Planet}} pipeline</div>
+      <div class="steps">{{range .Steps}}<span class="{{stepClass .Stage}}">{{stepLabel .Stage .Format}} ✓</span>{{end}}</div>
+      <table>
+        <thead><tr><th>Compare</th><th>From</th><th>To</th><th>Max abs diff</th><th>Mean abs diff</th></tr></thead>
+        <tbody>
+          {{range .Compare}}
+          <tr class="{{compareClass .}}">
+            <td><span class="badge {{compareClass .}}">{{compareLabel .}}</span></td>
+            <td>{{.FromStage}} / {{.FromFormat}}</td>
+            <td>{{toLabel .}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MaxAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MaxAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MaxAbsDiff}}</div></div>{{end}}</td>
+            <td>{{if .Pending}}—{{else}}<div class="diff-num"><div class="diff-sci">{{fmtSci .MeanAbsDiff}}</div><div class="diff-plain">≈ {{fmtDiffPlain .MeanAbsDiff}}</div><div class="diff-hint">{{fmtDiffHint .MeanAbsDiff}}</div></div>{{end}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{end}}
+  </section>
+  {{end}}
+{{end}}
+{{else if eq .Tab "swiglu"}}
+{{if .SwiGLULoomRows}}
+<section class="loom-catalog">
+  <h2>Loom entity checkpoints ({{.SwiGLUModelsDir}})</h2>
+  <table>
+    <thead><tr><th>Model</th><th>Planet</th><th>.entity</th><th>Loom report</th></tr></thead>
+    <tbody>
+      {{range .SwiGLULoomRows}}{{range .Planets}}
+      <tr>
+        <td>{{.ModelID}}</td><td>{{.Engine}}</td>
+        <td class="mono">{{if .EntityFiles}}{{index .EntityFiles 0}}{{else}}—{{end}}</td>
+        <td>{{if .HasLoomReport}}<span class="loom-yes">✓</span>{{else}}<span class="loom-no">pending</span>{{end}}</td>
+      </tr>
+      {{end}}{{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{if not .SwiGLU.Models}}
+  <div class="empty">No SwiGLU reports yet.<br><br><code>go run .</code><br><code>./python/swiglu/run_swiglu.sh</code></div>
+{{else}}
+  {{range .SwiGLU.Models}}
   <section class="model">
     <h2>{{.ModelID}}</h2>
     {{range .Pipelines}}

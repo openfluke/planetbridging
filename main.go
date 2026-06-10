@@ -42,6 +42,7 @@ func runHost() {
 	layernormReports := flag.String("layernorm-reports", defaultLayerNormReportsDir(), "layernorm JSON reports dir")
 	embeddingReports := flag.String("embedding-reports", defaultEmbeddingReportsDir(), "embedding JSON reports dir")
 	rmsnormReports := flag.String("rmsnorm-reports", defaultRMSNormReportsDir(), "rmsnorm JSON reports dir")
+	swigluReports := flag.String("swiglu-reports", defaultSwiGLUReportsDir(), "swiglu JSON reports dir")
 	mixerReports := flag.String("mixer-reports", defaultMixerReportsDir(), "mixer JSON reports dir")
 	flag.Parse()
 
@@ -85,14 +86,18 @@ func runHost() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	swigluStore, err := host.NewStore(*swigluReports)
+	if err != nil {
+		log.Fatal(err)
+	}
 	mixerStore, err := host.NewStore(*mixerReports)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	srv := host.NewServer(
-		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, embeddingStore, rmsnormStore, mixerStore,
-		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultEmbeddingModelsDir(), defaultRMSNormModelsDir(), defaultMixerModelsDir(),
+		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, embeddingStore, rmsnormStore, swigluStore, mixerStore,
+		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultEmbeddingModelsDir(), defaultRMSNormModelsDir(), defaultSwiGLUModelsDir(), defaultMixerModelsDir(),
 	)
 	log.Printf("planetbridging host listening on %s", *addr)
 	log.Printf("Compare UI → http://localhost%s/", *addr)
@@ -142,6 +147,10 @@ func defaultRMSNormReportsDir() string {
 	return bedrockPath("rmsnorm", "reports")
 }
 
+func defaultSwiGLUReportsDir() string {
+	return bedrockPath("swiglu", "reports")
+}
+
 func defaultMixerReportsDir() string {
 	return bedrockPath("mixer", "reports")
 }
@@ -184,6 +193,10 @@ func defaultEmbeddingModelsDir() string {
 
 func defaultRMSNormModelsDir() string {
 	return bedrockPath("rmsnorm", "models")
+}
+
+func defaultSwiGLUModelsDir() string {
+	return bedrockPath("swiglu", "models")
 }
 
 func defaultMixerModelsDir() string {

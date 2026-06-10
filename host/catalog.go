@@ -49,6 +49,7 @@ type Dashboard struct {
 	LayerNormFixture  FixtureInfo
 	EmbeddingFixture  FixtureInfo
 	RMSNormFixture    FixtureInfo
+	SwiGLUFixture     FixtureInfo
 	MixerFixture      FixtureInfo
 	Dense         DenseComparisonSummary
 	CNN1          DenseComparisonSummary
@@ -60,6 +61,7 @@ type Dashboard struct {
 	LayerNorm     DenseComparisonSummary
 	Embedding     DenseComparisonSummary
 	RMSNorm       DenseComparisonSummary
+	SwiGLU        DenseComparisonSummary
 	Mixer         DenseComparisonSummary
 	Loom          LoomDashboardStats
 	CNN1Loom      LoomDashboardStats
@@ -71,6 +73,7 @@ type Dashboard struct {
 	LayerNormLoom  LoomDashboardStats
 	EmbeddingLoom  LoomDashboardStats
 	RMSNormLoom    LoomDashboardStats
+	SwiGLULoom     LoomDashboardStats
 	MixerLoom      LoomDashboardStats
 	LoomRows      []LoomImportRow
 	CNN1LoomRows  []LoomImportRow
@@ -82,6 +85,7 @@ type Dashboard struct {
 	LayerNormLoomRows  []LoomImportRow
 	EmbeddingLoomRows  []LoomImportRow
 	RMSNormLoomRows    []LoomImportRow
+	SwiGLULoomRows     []LoomImportRow
 	MixerLoomRows      []LoomImportRow
 	ModelsDir     string
 	CNN1ModelsDir string
@@ -93,6 +97,7 @@ type Dashboard struct {
 	LayerNormModelsDir  string
 	EmbeddingModelsDir  string
 	RMSNormModelsDir    string
+	SwiGLUModelsDir     string
 	MixerModelsDir      string
 }
 
@@ -254,6 +259,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	layernormRep := filterBedrock(all, "layernorm")
 	embeddingRep := filterBedrock(all, "embedding")
 	rmsnormRep := filterBedrock(all, "rmsnorm")
+	swigluRep := filterBedrock(all, "swiglu")
 	mixerRep := filterBedrock(all, "mixer")
 
 	dense := SortDenseSummary(CompareDensePipeline(denseRep))
@@ -266,6 +272,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	layernorm := SortDenseSummary(CompareDensePipeline(layernormRep))
 	embedding := SortDenseSummary(CompareDensePipeline(embeddingRep))
 	rmsnorm := SortDenseSummary(CompareDensePipeline(rmsnormRep))
+	swiglu := SortDenseSummary(CompareDensePipeline(swigluRep))
 	mixer := SortDenseSummary(CompareDensePipeline(mixerRep))
 
 	fixture := DefaultFixtureInfo()
@@ -344,6 +351,14 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if rmsnorm.FixtureVersion != "" {
 		rmsnormFixture.Version = rmsnorm.FixtureVersion
 	}
+	swigluFixture := FixtureInfo{
+		Version: "swiglu_bedrock_v1",
+		Seed:    42,
+		Note:    "SwiGLU bedrock — gate/up/down MLP (Loom semantics, SiLU gate), planets: pytorch · tensorflow · jax.",
+	}
+	if swiglu.FixtureVersion != "" {
+		swigluFixture.Version = swiglu.FixtureVersion
+	}
 	mixerFixture := FixtureInfo{
 		Version: "mixer_bedrock_v1",
 		Seed:    42,
@@ -393,6 +408,10 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if err != nil {
 		return Dashboard{}, err
 	}
+	swigluRows, err := ScanSavedModels(s.swigluModelsDir, swigluRep)
+	if err != nil {
+		return Dashboard{}, err
+	}
 	mixerRows, err := ScanSavedModels(s.mixerModelsDir, mixerRep)
 	if err != nil {
 		return Dashboard{}, err
@@ -409,6 +428,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		LayerNormFixture:  layernormFixture,
 		EmbeddingFixture:  embeddingFixture,
 		RMSNormFixture:    rmsnormFixture,
+		SwiGLUFixture:     swigluFixture,
 		MixerFixture:      mixerFixture,
 		Dense:         dense,
 		CNN1:          cnn1,
@@ -420,6 +440,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		LayerNorm:     layernorm,
 		Embedding:     embedding,
 		RMSNorm:       rmsnorm,
+		SwiGLU:        swiglu,
 		Mixer:         mixer,
 		Loom:          computeLoomStats(dense, denseRows),
 		CNN1Loom:      computeLoomStats(cnn1, cnn1Rows),
@@ -431,6 +452,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		LayerNormLoom:  computeLoomStats(layernorm, layernormRows),
 		EmbeddingLoom:  computeLoomStats(embedding, embeddingRows),
 		RMSNormLoom:    computeLoomStats(rmsnorm, rmsnormRows),
+		SwiGLULoom:     computeLoomStats(swiglu, swigluRows),
 		MixerLoom:      computeLoomStats(mixer, mixerRows),
 		LoomRows:      denseRows,
 		CNN1LoomRows:  cnn1Rows,
@@ -442,6 +464,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		LayerNormLoomRows:  layernormRows,
 		EmbeddingLoomRows:  embeddingRows,
 		RMSNormLoomRows:    rmsnormRows,
+		SwiGLULoomRows:     swigluRows,
 		MixerLoomRows:      mixerRows,
 		ModelsDir:     s.denseModelsDir,
 		CNN1ModelsDir: s.cnn1ModelsDir,
@@ -453,6 +476,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		LayerNormModelsDir:  s.layernormModelsDir,
 		EmbeddingModelsDir:  s.embeddingModelsDir,
 		RMSNormModelsDir:    s.rmsnormModelsDir,
+		SwiGLUModelsDir:     s.swigluModelsDir,
 		MixerModelsDir:      s.mixerModelsDir,
 	}, nil
 }
