@@ -55,7 +55,7 @@ func TestRenderAllComparisonPDF(t *testing.T) {
 	summaries := map[string]DenseComparisonSummary{
 		"dense": {FixtureVersion: "dense_v1", ReportCount: 1, Models: []DenseModelComparison{{ModelID: "m1"}}},
 	}
-	pdf, err := RenderAllComparisonPDF("0.5.0", summaries)
+	pdf, err := RenderAllComparisonPDF(Version, summaries)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,8 +88,8 @@ func TestFormatAllComparisonText(t *testing.T) {
 		"dense": {FixtureVersion: "dense_v1", ReportCount: 2, Models: []DenseModelComparison{{ModelID: "m1"}}},
 		"cnn1":  {FixtureVersion: "cnn1_v1", ReportCount: 1},
 	}
-	out := FormatAllComparisonText("0.5.0", summaries)
-	if !strings.Contains(out, "version=0.5.0") || !strings.Contains(out, "BEDROCK: dense") || !strings.Contains(out, "BEDROCK: cnn1") {
+	out := FormatAllComparisonText(Version, summaries)
+	if !strings.Contains(out, "version="+Version) || !strings.Contains(out, "BEDROCK: dense") || !strings.Contains(out, "BEDROCK: cnn1") {
 		t.Fatalf("missing expected sections:\n%s", out)
 	}
 }
