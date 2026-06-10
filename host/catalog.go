@@ -46,8 +46,9 @@ type Dashboard struct {
 	MHAFixture    FixtureInfo
 	LSTMFixture   FixtureInfo
 	RNNFixture       FixtureInfo
-	LayerNormFixture FixtureInfo
-	MixerFixture     FixtureInfo
+	LayerNormFixture  FixtureInfo
+	EmbeddingFixture  FixtureInfo
+	MixerFixture      FixtureInfo
 	Dense         DenseComparisonSummary
 	CNN1          DenseComparisonSummary
 	CNN2          DenseComparisonSummary
@@ -56,6 +57,7 @@ type Dashboard struct {
 	LSTM          DenseComparisonSummary
 	RNN           DenseComparisonSummary
 	LayerNorm     DenseComparisonSummary
+	Embedding     DenseComparisonSummary
 	Mixer         DenseComparisonSummary
 	Loom          LoomDashboardStats
 	CNN1Loom      LoomDashboardStats
@@ -64,8 +66,9 @@ type Dashboard struct {
 	MHALoom       LoomDashboardStats
 	LSTMLoom      LoomDashboardStats
 	RNNLoom       LoomDashboardStats
-	LayerNormLoom LoomDashboardStats
-	MixerLoom     LoomDashboardStats
+	LayerNormLoom  LoomDashboardStats
+	EmbeddingLoom  LoomDashboardStats
+	MixerLoom      LoomDashboardStats
 	LoomRows      []LoomImportRow
 	CNN1LoomRows  []LoomImportRow
 	CNN2LoomRows  []LoomImportRow
@@ -73,8 +76,9 @@ type Dashboard struct {
 	MHALoomRows   []LoomImportRow
 	LSTMLoomRows  []LoomImportRow
 	RNNLoomRows       []LoomImportRow
-	LayerNormLoomRows []LoomImportRow
-	MixerLoomRows     []LoomImportRow
+	LayerNormLoomRows  []LoomImportRow
+	EmbeddingLoomRows  []LoomImportRow
+	MixerLoomRows      []LoomImportRow
 	ModelsDir     string
 	CNN1ModelsDir string
 	CNN2ModelsDir string
@@ -82,8 +86,9 @@ type Dashboard struct {
 	MHAModelsDir  string
 	LSTMModelsDir string
 	RNNModelsDir       string
-	LayerNormModelsDir string
-	MixerModelsDir     string
+	LayerNormModelsDir  string
+	EmbeddingModelsDir  string
+	MixerModelsDir      string
 }
 
 func computeLoomStats(dense DenseComparisonSummary, rows []LoomImportRow) LoomDashboardStats {
@@ -242,6 +247,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	lstmRep := filterBedrock(all, "lstm")
 	rnnRep := filterBedrock(all, "rnn")
 	layernormRep := filterBedrock(all, "layernorm")
+	embeddingRep := filterBedrock(all, "embedding")
 	mixerRep := filterBedrock(all, "mixer")
 
 	dense := SortDenseSummary(CompareDensePipeline(denseRep))
@@ -252,6 +258,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	lstm := SortDenseSummary(CompareDensePipeline(lstmRep))
 	rnn := SortDenseSummary(CompareDensePipeline(rnnRep))
 	layernorm := SortDenseSummary(CompareDensePipeline(layernormRep))
+	embedding := SortDenseSummary(CompareDensePipeline(embeddingRep))
 	mixer := SortDenseSummary(CompareDensePipeline(mixerRep))
 
 	fixture := DefaultFixtureInfo()
@@ -314,6 +321,14 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if layernorm.FixtureVersion != "" {
 		layernormFixture.Version = layernorm.FixtureVersion
 	}
+	embeddingFixture := FixtureInfo{
+		Version: "embedding_bedrock_v1",
+		Seed:    42,
+		Note:    "Embedding bedrock — token-id lookup (Loom semantics), planets: pytorch · tensorflow · jax.",
+	}
+	if embedding.FixtureVersion != "" {
+		embeddingFixture.Version = embedding.FixtureVersion
+	}
 	mixerFixture := FixtureInfo{
 		Version: "mixer_bedrock_v1",
 		Seed:    42,
@@ -355,6 +370,10 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	if err != nil {
 		return Dashboard{}, err
 	}
+	embeddingRows, err := ScanSavedModels(s.embeddingModelsDir, embeddingRep)
+	if err != nil {
+		return Dashboard{}, err
+	}
 	mixerRows, err := ScanSavedModels(s.mixerModelsDir, mixerRep)
 	if err != nil {
 		return Dashboard{}, err
@@ -368,8 +387,9 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		MHAFixture:    mhaFixture,
 		LSTMFixture:   lstmFixture,
 		RNNFixture:       rnnFixture,
-		LayerNormFixture: layernormFixture,
-		MixerFixture:     mixerFixture,
+		LayerNormFixture:  layernormFixture,
+		EmbeddingFixture:  embeddingFixture,
+		MixerFixture:      mixerFixture,
 		Dense:         dense,
 		CNN1:          cnn1,
 		CNN2:          cnn2,
@@ -378,6 +398,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		LSTM:          lstm,
 		RNN:           rnn,
 		LayerNorm:     layernorm,
+		Embedding:     embedding,
 		Mixer:         mixer,
 		Loom:          computeLoomStats(dense, denseRows),
 		CNN1Loom:      computeLoomStats(cnn1, cnn1Rows),
@@ -386,8 +407,9 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		MHALoom:       computeLoomStats(mha, mhaRows),
 		LSTMLoom:      computeLoomStats(lstm, lstmRows),
 		RNNLoom:       computeLoomStats(rnn, rnnRows),
-		LayerNormLoom: computeLoomStats(layernorm, layernormRows),
-		MixerLoom:     computeLoomStats(mixer, mixerRows),
+		LayerNormLoom:  computeLoomStats(layernorm, layernormRows),
+		EmbeddingLoom:  computeLoomStats(embedding, embeddingRows),
+		MixerLoom:      computeLoomStats(mixer, mixerRows),
 		LoomRows:      denseRows,
 		CNN1LoomRows:  cnn1Rows,
 		CNN2LoomRows:  cnn2Rows,
@@ -395,8 +417,9 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		MHALoomRows:   mhaRows,
 		LSTMLoomRows:  lstmRows,
 		RNNLoomRows:       rnnRows,
-		LayerNormLoomRows: layernormRows,
-		MixerLoomRows:     mixerRows,
+		LayerNormLoomRows:  layernormRows,
+		EmbeddingLoomRows:  embeddingRows,
+		MixerLoomRows:      mixerRows,
 		ModelsDir:     s.denseModelsDir,
 		CNN1ModelsDir: s.cnn1ModelsDir,
 		CNN2ModelsDir: s.cnn2ModelsDir,
@@ -404,8 +427,9 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 		MHAModelsDir:  s.mhaModelsDir,
 		LSTMModelsDir: s.lstmModelsDir,
 		RNNModelsDir:       s.rnnModelsDir,
-		LayerNormModelsDir: s.layernormModelsDir,
-		MixerModelsDir:     s.mixerModelsDir,
+		LayerNormModelsDir:  s.layernormModelsDir,
+		EmbeddingModelsDir:  s.embeddingModelsDir,
+		MixerModelsDir:      s.mixerModelsDir,
 	}, nil
 }
 

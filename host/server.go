@@ -17,8 +17,9 @@ type Server struct {
 	mhaStore       *Store
 	lstmStore      *Store
 	rnnStore       *Store
-	layernormStore *Store
-	mixerStore     *Store
+	layernormStore  *Store
+	embeddingStore  *Store
+	mixerStore      *Store
 	denseModelsDir string
 	cnn1ModelsDir  string
 	cnn2ModelsDir  string
@@ -26,34 +27,37 @@ type Server struct {
 	mhaModelsDir   string
 	lstmModelsDir  string
 	rnnModelsDir       string
-	layernormModelsDir string
-	mixerModelsDir     string
+	layernormModelsDir  string
+	embeddingModelsDir  string
+	mixerModelsDir      string
 	mux            *http.ServeMux
 }
 
 func NewServer(
-	denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, mixerStore *Store,
-	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir, cnn3ModelsDir, mhaModelsDir, lstmModelsDir, rnnModelsDir, layernormModelsDir, mixerModelsDir string,
+	denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, embeddingStore, mixerStore *Store,
+	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir, cnn3ModelsDir, mhaModelsDir, lstmModelsDir, rnnModelsDir, layernormModelsDir, embeddingModelsDir, mixerModelsDir string,
 ) *Server {
 	s := &Server{
-		denseStore:         denseStore,
-		cnn1Store:          cnn1Store,
-		cnn2Store:          cnn2Store,
-		cnn3Store:          cnn3Store,
-		mhaStore:           mhaStore,
-		lstmStore:          lstmStore,
-		rnnStore:           rnnStore,
-		layernormStore:     layernormStore,
-		mixerStore:         mixerStore,
-		denseModelsDir:     denseModelsDir,
-		cnn1ModelsDir:      cnn1ModelsDir,
-		cnn2ModelsDir:      cnn2ModelsDir,
-		cnn3ModelsDir:      cnn3ModelsDir,
-		mhaModelsDir:       mhaModelsDir,
-		lstmModelsDir:      lstmModelsDir,
-		rnnModelsDir:         rnnModelsDir,
-		layernormModelsDir: layernormModelsDir,
-		mixerModelsDir:     mixerModelsDir,
+		denseStore:          denseStore,
+		cnn1Store:           cnn1Store,
+		cnn2Store:           cnn2Store,
+		cnn3Store:           cnn3Store,
+		mhaStore:            mhaStore,
+		lstmStore:           lstmStore,
+		rnnStore:            rnnStore,
+		layernormStore:      layernormStore,
+		embeddingStore:      embeddingStore,
+		mixerStore:          mixerStore,
+		denseModelsDir:      denseModelsDir,
+		cnn1ModelsDir:       cnn1ModelsDir,
+		cnn2ModelsDir:       cnn2ModelsDir,
+		cnn3ModelsDir:       cnn3ModelsDir,
+		mhaModelsDir:        mhaModelsDir,
+		lstmModelsDir:       lstmModelsDir,
+		rnnModelsDir:          rnnModelsDir,
+		layernormModelsDir:  layernormModelsDir,
+		embeddingModelsDir:  embeddingModelsDir,
+		mixerModelsDir:      mixerModelsDir,
 		mux:            http.NewServeMux(),
 	}
 	s.routes()
@@ -93,11 +97,15 @@ func (s *Server) allReports() []Report {
 	for i := range layernorm {
 		layernorm[i].Bedrock = "layernorm"
 	}
+	embedding, _ := s.embeddingStore.LoadAll()
+	for i := range embedding {
+		embedding[i].Bedrock = "embedding"
+	}
 	mixer, _ := s.mixerStore.LoadAll()
 	for i := range mixer {
 		mixer[i].Bedrock = "mixer"
 	}
-	return append(append(append(append(append(append(append(append(dense, cnn1...), cnn2...), cnn3...), mha...), lstm...), rnn...), layernorm...), mixer...)
+	return append(append(append(append(append(append(append(append(append(dense, cnn1...), cnn2...), cnn3...), mha...), lstm...), rnn...), layernorm...), embedding...), mixer...)
 }
 
 func (s *Server) Handler() http.Handler { return s.mux }
@@ -116,6 +124,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/compare/lstm", s.handleCompareLSTM)
 	s.mux.HandleFunc("GET /api/v1/compare/rnn", s.handleCompareRNN)
 	s.mux.HandleFunc("GET /api/v1/compare/layernorm", s.handleCompareLayerNorm)
+	s.mux.HandleFunc("GET /api/v1/compare/embedding", s.handleCompareEmbedding)
 	s.mux.HandleFunc("GET /api/v1/compare/mixer", s.handleCompareMixer)
 	s.mux.HandleFunc("GET /api/v1/compare.txt", s.handleCompareText)
 	s.mux.HandleFunc("GET /api/v1/export/all.pdf", s.handleExportAllPDF)
@@ -129,6 +138,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/loom/stream/lstm", s.handleLSTMStream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/rnn", s.handleRNNStream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/layernorm", s.handleLayerNormStream)
+	s.mux.HandleFunc("POST /api/v1/loom/stream/embedding", s.handleEmbeddingStream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/mixer", s.handleMixerStream)
 }
 
@@ -175,6 +185,8 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		store = s.rnnStore
 	case "layernorm":
 		store = s.layernormStore
+	case "embedding":
+		store = s.embeddingStore
 	case "mixer":
 		store = s.mixerStore
 	}

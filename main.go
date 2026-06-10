@@ -40,6 +40,7 @@ func runHost() {
 	lstmReports := flag.String("lstm-reports", defaultLSTMReportsDir(), "lstm JSON reports dir")
 	rnnReports := flag.String("rnn-reports", defaultRNNReportsDir(), "rnn JSON reports dir")
 	layernormReports := flag.String("layernorm-reports", defaultLayerNormReportsDir(), "layernorm JSON reports dir")
+	embeddingReports := flag.String("embedding-reports", defaultEmbeddingReportsDir(), "embedding JSON reports dir")
 	mixerReports := flag.String("mixer-reports", defaultMixerReportsDir(), "mixer JSON reports dir")
 	flag.Parse()
 
@@ -75,14 +76,18 @@ func runHost() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	embeddingStore, err := host.NewStore(*embeddingReports)
+	if err != nil {
+		log.Fatal(err)
+	}
 	mixerStore, err := host.NewStore(*mixerReports)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	srv := host.NewServer(
-		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, mixerStore,
-		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultMixerModelsDir(),
+		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, embeddingStore, mixerStore,
+		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultEmbeddingModelsDir(), defaultMixerModelsDir(),
 	)
 	log.Printf("planetbridging host listening on %s", *addr)
 	log.Printf("Compare UI → http://localhost%s/", *addr)
@@ -124,6 +129,10 @@ func defaultLayerNormReportsDir() string {
 	return bedrockPath("layernorm", "reports")
 }
 
+func defaultEmbeddingReportsDir() string {
+	return bedrockPath("embedding", "reports")
+}
+
 func defaultMixerReportsDir() string {
 	return bedrockPath("mixer", "reports")
 }
@@ -158,6 +167,10 @@ func defaultRNNModelsDir() string {
 
 func defaultLayerNormModelsDir() string {
 	return bedrockPath("layernorm", "models")
+}
+
+func defaultEmbeddingModelsDir() string {
+	return bedrockPath("embedding", "models")
 }
 
 func defaultMixerModelsDir() string {

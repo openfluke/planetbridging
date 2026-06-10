@@ -1,0 +1,39 @@
+fixture_version: embedding_bedrock_v1
+seed: 42
+train_samples: 64
+test_samples: 100
+max_seq_len: 8
+max_vocab: 64
+output_dim: 64
+epochs: 0
+batch_size: 32
+learning_rate: 0.01
+
+engines:
+  - id: pytorch
+    enabled: true
+  - id: tensorflow
+    enabled: true
+  - id: jax
+    enabled: true
+
+models:
+  - id: embedding_16_4_4
+    vocab_size: 16
+    seq_len: 4
+    embed_dim: 4
+
+  - id: embedding_32_4_8
+    vocab_size: 32
+    seq_len: 4
+    embed_dim: 8
+
+  - id: embedding_32_8_4
+    vocab_size: 32
+    seq_len: 8
+    embed_dim: 4
+
+  - id: embedding_64_8_8
+    vocab_size: 64
+    seq_len: 8
+    embed_dim: 8
