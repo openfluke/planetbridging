@@ -1,0 +1,35 @@
+fixture_version: rmsnorm_bedrock_v1
+seed: 42
+train_samples: 64
+test_samples: 100
+max_seq_len: 4
+max_dim: 32
+output_dim: 128
+epochs: 0
+batch_size: 32
+learning_rate: 0.01
+
+engines:
+  - id: pytorch
+    enabled: true
+  - id: tensorflow
+    enabled: true
+  - id: jax
+    enabled: true
+
+models:
+  - id: rmsnorm_4
+    dim: 4
+    seq_len: 4
+
+  - id: rmsnorm_8
+    dim: 8
+    seq_len: 4
+
+  - id: rmsnorm_16
+    dim: 16
+    seq_len: 4
+
+  - id: rmsnorm_32
+    dim: 32
+    seq_len: 4

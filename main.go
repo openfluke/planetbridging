@@ -41,6 +41,7 @@ func runHost() {
 	rnnReports := flag.String("rnn-reports", defaultRNNReportsDir(), "rnn JSON reports dir")
 	layernormReports := flag.String("layernorm-reports", defaultLayerNormReportsDir(), "layernorm JSON reports dir")
 	embeddingReports := flag.String("embedding-reports", defaultEmbeddingReportsDir(), "embedding JSON reports dir")
+	rmsnormReports := flag.String("rmsnorm-reports", defaultRMSNormReportsDir(), "rmsnorm JSON reports dir")
 	mixerReports := flag.String("mixer-reports", defaultMixerReportsDir(), "mixer JSON reports dir")
 	flag.Parse()
 
@@ -80,14 +81,18 @@ func runHost() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	rmsnormStore, err := host.NewStore(*rmsnormReports)
+	if err != nil {
+		log.Fatal(err)
+	}
 	mixerStore, err := host.NewStore(*mixerReports)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	srv := host.NewServer(
-		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, embeddingStore, mixerStore,
-		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultEmbeddingModelsDir(), defaultMixerModelsDir(),
+		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, embeddingStore, rmsnormStore, mixerStore,
+		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultEmbeddingModelsDir(), defaultRMSNormModelsDir(), defaultMixerModelsDir(),
 	)
 	log.Printf("planetbridging host listening on %s", *addr)
 	log.Printf("Compare UI → http://localhost%s/", *addr)
@@ -133,6 +138,10 @@ func defaultEmbeddingReportsDir() string {
 	return bedrockPath("embedding", "reports")
 }
 
+func defaultRMSNormReportsDir() string {
+	return bedrockPath("rmsnorm", "reports")
+}
+
 func defaultMixerReportsDir() string {
 	return bedrockPath("mixer", "reports")
 }
@@ -171,6 +180,10 @@ func defaultLayerNormModelsDir() string {
 
 func defaultEmbeddingModelsDir() string {
 	return bedrockPath("embedding", "models")
+}
+
+func defaultRMSNormModelsDir() string {
+	return bedrockPath("rmsnorm", "models")
 }
 
 func defaultMixerModelsDir() string {

@@ -6,7 +6,7 @@ Update this file when a planet/step/layer type moves status. The compare UI at h
 
 > **Planet Bridging v0.4.0** — planets → Loom **partial** (original 7 + LayerNorm + Mixer). **v0.5.0** = all standard Loom layer bedrocks passing. **v1.0** = Loom → other engines. **v1.x–2.0** = file import, niche layers, gaps. See [`README.md`](./README.md#version-roadmap-how-we-count-halves).
 >
-> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, **LSTM**, **RNN**, **LayerNorm**, **Embedding**, and **Mixer** bedrocks are live in compare-host. **RMSNorm**, **SwiGLU**, and **Residual** are **not wired** yet — each needs a full bedrock like `python/dense/`.
+> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, **LSTM**, **RNN**, **LayerNorm**, **Embedding**, **RMSNorm**, and **Mixer** bedrocks are live in compare-host. **SwiGLU** and **Residual** are **not wired** yet — each needs a full bedrock like `python/dense/`.
 
 ---
 
@@ -42,7 +42,7 @@ native → onnx → safetensors → loom entity   ❌
 | Path | Status | Notes |
 |------|--------|-------|
 | native → export (on disk) | ✅ dense bedrock | Proves save/reload did not corrupt weights |
-| native → loom / entity (layer stream) | ✅ dense, cnn1–3, mha, lstm, rnn, layernorm, embedding, mixer | Python reads **live in-memory** weights; Go builds `.stream.entity` |
+| native → loom / entity (layer stream) | ✅ dense, cnn1–3, mha, lstm, rnn, layernorm, embedding, rmsnorm, mixer | Python reads **live in-memory** weights; Go builds `.stream.entity` |
 | onnx file → loom entity | ⬜ | No Go importer wired in compare-host |
 | safetensors file → loom entity | ⬜ | No Go importer wired in compare-host (`.safetensors.entity` files on disk are experiments, not reported) |
 | loom entity → export | ⬜ | Export back to planets not started |
@@ -66,13 +66,13 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 | **RNN** | ✅ `python/rnn/` · 4 models × 3 planets | ✅ pytorch/tf/jax extractors | ✅ `POST /api/v1/loom/stream/rnn` | ✅ rnn tab | 🟡 POC |
 | **LayerNorm** | ✅ `python/layernorm/` · 4 models × 3 planets | ✅ numpy reference forward | ✅ `POST /api/v1/loom/stream/layernorm` | ✅ layernorm tab | 🟡 POC |
 | **Embedding** | ✅ `python/embedding/` · 4 models × 3 planets | ✅ numpy reference forward | ✅ `POST /api/v1/loom/stream/embedding` | ✅ embedding tab | 🟡 POC |
+| **RMSNorm** | ✅ `python/rmsnorm/` · 4 models × 3 planets | ✅ numpy reference forward | ✅ `POST /api/v1/loom/stream/rmsnorm` | ✅ rmsnorm tab | 🟡 POC |
 | **Mixer** | ✅ `python/mixer/` · 1 model × 3 planets | ✅ pytorch/tf/jax (7-type stack) | ✅ `POST /api/v1/loom/stream/mixer` | ✅ mixer tab | 🟡 POC |
 
 ### Toward v0.5.0 (planets → Loom complete)
 
 | Loom layer | Bedrock dir | Go bridge | Compare UI | Notes |
 |------------|-------------|-----------|------------|-------|
-| **RMSNorm** | `python/rmsnorm/` | ⬜ | ⬜ | **0.5.0** |
 | **SwiGLU** | `python/swiglu/` | ⬜ | ⬜ | **0.5.0** |
 | **Residual** | `python/residual/` | ⬜ | ⬜ | **0.5.0** |
 | **Mixer (full)** | `python/mixer/` | 🟡 | ✅ | Upgrade stack when above land |
@@ -90,7 +90,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 7. ~~**Mixer**~~ — ✅ done (2026-06-10) — 3/3 loom PASS (`mixer_all_v1`, 7-type stack)
 8. ~~**LayerNorm**~~ — ✅ done (2026-06-10) — 24/24 loom PASS
 9. ~~**Embedding**~~ — ✅ done (2026-06-11) — 24/24 loom EXACT
-10. **RMSNorm** — ⬜ target **0.5.0**
+10. ~~**RMSNorm**~~ — ✅ done (2026-06-11) — 24/24 loom PASS
 11. **SwiGLU** — ⬜ target **0.5.0**
 12. **Residual** — ⬜ target **0.5.0**
 13. **Mixer v2** — ⬜ all bridged layer types in one stack — target **0.5.0**
@@ -168,6 +168,24 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 **Scope (v1):** token lookup table `[vocab × embed_dim]`, linear activation on Loom build. `epochs: 0` — init weights, infer on shared `x_test`, stream to Go.
 
 **Models:** `embedding_16_4_4`, `embedding_32_4_8`, `embedding_32_8_4`, `embedding_64_8_8`.
+
+---
+
+### RMSNorm — ✅ v1 bedrock
+
+**Bedrock:** `python/rmsnorm/` · fixture `rmsnorm_bedrock_v1` · 4 models · pytorch / tensorflow / jax · **`[N, seq, dim]`** fixtures.
+
+**Run:** `go run .` then `./python/rmsnorm/run_rmsnorm.sh` · UI tab: http://localhost:9876/?tab=rmsnorm
+
+| Planet | Export | Loom stream | Status |
+|--------|--------|-------------|--------|
+| PyTorch | — (reference forward) | ✅ | ✅ 4/4 PASS |
+| TensorFlow | — (reference forward) | ✅ | ✅ 4/4 PASS |
+| JAX | — (reference forward) | ✅ | ✅ 4/4 PASS |
+
+**Scope (v1):** per-token RMSNorm (gamma only), `eps=1e-6`, linear activation on Loom build. `epochs: 0` — init weights, infer on shared `x_test`, stream to Go.
+
+**Models:** `rmsnorm_4`, `rmsnorm_8`, `rmsnorm_16`, `rmsnorm_32` (seq_len=4).
 
 ---
 

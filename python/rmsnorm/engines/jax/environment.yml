@@ -1,0 +1,8 @@
+name: pb-rmsnorm-jax
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pyyaml
+  - jax
