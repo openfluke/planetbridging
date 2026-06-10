@@ -39,6 +39,7 @@ func runHost() {
 	mhaReports := flag.String("mha-reports", defaultMHAReportsDir(), "mha JSON reports dir")
 	lstmReports := flag.String("lstm-reports", defaultLSTMReportsDir(), "lstm JSON reports dir")
 	rnnReports := flag.String("rnn-reports", defaultRNNReportsDir(), "rnn JSON reports dir")
+	layernormReports := flag.String("layernorm-reports", defaultLayerNormReportsDir(), "layernorm JSON reports dir")
 	mixerReports := flag.String("mixer-reports", defaultMixerReportsDir(), "mixer JSON reports dir")
 	flag.Parse()
 
@@ -70,14 +71,18 @@ func runHost() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	layernormStore, err := host.NewStore(*layernormReports)
+	if err != nil {
+		log.Fatal(err)
+	}
 	mixerStore, err := host.NewStore(*mixerReports)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	srv := host.NewServer(
-		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, mixerStore,
-		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultMixerModelsDir(),
+		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, mixerStore,
+		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultMixerModelsDir(),
 	)
 	log.Printf("planetbridging host listening on %s", *addr)
 	log.Printf("Compare UI → http://localhost%s/", *addr)
@@ -115,6 +120,10 @@ func defaultRNNReportsDir() string {
 	return bedrockPath("rnn", "reports")
 }
 
+func defaultLayerNormReportsDir() string {
+	return bedrockPath("layernorm", "reports")
+}
+
 func defaultMixerReportsDir() string {
 	return bedrockPath("mixer", "reports")
 }
@@ -145,6 +154,10 @@ func defaultLSTMModelsDir() string {
 
 func defaultRNNModelsDir() string {
 	return bedrockPath("rnn", "models")
+}
+
+func defaultLayerNormModelsDir() string {
+	return bedrockPath("layernorm", "models")
 }
 
 func defaultMixerModelsDir() string {

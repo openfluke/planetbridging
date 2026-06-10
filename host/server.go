@@ -17,6 +17,7 @@ type Server struct {
 	mhaStore       *Store
 	lstmStore      *Store
 	rnnStore       *Store
+	layernormStore *Store
 	mixerStore     *Store
 	denseModelsDir string
 	cnn1ModelsDir  string
@@ -24,32 +25,35 @@ type Server struct {
 	cnn3ModelsDir  string
 	mhaModelsDir   string
 	lstmModelsDir  string
-	rnnModelsDir   string
-	mixerModelsDir string
+	rnnModelsDir       string
+	layernormModelsDir string
+	mixerModelsDir     string
 	mux            *http.ServeMux
 }
 
 func NewServer(
-	denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, mixerStore *Store,
-	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir, cnn3ModelsDir, mhaModelsDir, lstmModelsDir, rnnModelsDir, mixerModelsDir string,
+	denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, mixerStore *Store,
+	denseModelsDir, cnn1ModelsDir, cnn2ModelsDir, cnn3ModelsDir, mhaModelsDir, lstmModelsDir, rnnModelsDir, layernormModelsDir, mixerModelsDir string,
 ) *Server {
 	s := &Server{
-		denseStore:     denseStore,
-		cnn1Store:      cnn1Store,
-		cnn2Store:      cnn2Store,
-		cnn3Store:      cnn3Store,
-		mhaStore:       mhaStore,
-		lstmStore:      lstmStore,
-		rnnStore:       rnnStore,
-		mixerStore:     mixerStore,
-		denseModelsDir: denseModelsDir,
-		cnn1ModelsDir:  cnn1ModelsDir,
-		cnn2ModelsDir:  cnn2ModelsDir,
-		cnn3ModelsDir:  cnn3ModelsDir,
-		mhaModelsDir:   mhaModelsDir,
-		lstmModelsDir:  lstmModelsDir,
-		rnnModelsDir:   rnnModelsDir,
-		mixerModelsDir: mixerModelsDir,
+		denseStore:         denseStore,
+		cnn1Store:          cnn1Store,
+		cnn2Store:          cnn2Store,
+		cnn3Store:          cnn3Store,
+		mhaStore:           mhaStore,
+		lstmStore:          lstmStore,
+		rnnStore:           rnnStore,
+		layernormStore:     layernormStore,
+		mixerStore:         mixerStore,
+		denseModelsDir:     denseModelsDir,
+		cnn1ModelsDir:      cnn1ModelsDir,
+		cnn2ModelsDir:      cnn2ModelsDir,
+		cnn3ModelsDir:      cnn3ModelsDir,
+		mhaModelsDir:       mhaModelsDir,
+		lstmModelsDir:      lstmModelsDir,
+		rnnModelsDir:         rnnModelsDir,
+		layernormModelsDir: layernormModelsDir,
+		mixerModelsDir:     mixerModelsDir,
 		mux:            http.NewServeMux(),
 	}
 	s.routes()
@@ -85,11 +89,15 @@ func (s *Server) allReports() []Report {
 	for i := range rnn {
 		rnn[i].Bedrock = "rnn"
 	}
+	layernorm, _ := s.layernormStore.LoadAll()
+	for i := range layernorm {
+		layernorm[i].Bedrock = "layernorm"
+	}
 	mixer, _ := s.mixerStore.LoadAll()
 	for i := range mixer {
 		mixer[i].Bedrock = "mixer"
 	}
-	return append(append(append(append(append(append(append(dense, cnn1...), cnn2...), cnn3...), mha...), lstm...), rnn...), mixer...)
+	return append(append(append(append(append(append(append(append(dense, cnn1...), cnn2...), cnn3...), mha...), lstm...), rnn...), layernorm...), mixer...)
 }
 
 func (s *Server) Handler() http.Handler { return s.mux }
@@ -107,6 +115,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/compare/mha", s.handleCompareMHA)
 	s.mux.HandleFunc("GET /api/v1/compare/lstm", s.handleCompareLSTM)
 	s.mux.HandleFunc("GET /api/v1/compare/rnn", s.handleCompareRNN)
+	s.mux.HandleFunc("GET /api/v1/compare/layernorm", s.handleCompareLayerNorm)
 	s.mux.HandleFunc("GET /api/v1/compare/mixer", s.handleCompareMixer)
 	s.mux.HandleFunc("GET /api/v1/compare.txt", s.handleCompareText)
 	s.mux.HandleFunc("GET /api/v1/export/all.pdf", s.handleExportAllPDF)
@@ -119,6 +128,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/loom/stream/mha", s.handleMHAStream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/lstm", s.handleLSTMStream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/rnn", s.handleRNNStream)
+	s.mux.HandleFunc("POST /api/v1/loom/stream/layernorm", s.handleLayerNormStream)
 	s.mux.HandleFunc("POST /api/v1/loom/stream/mixer", s.handleMixerStream)
 }
 
@@ -163,6 +173,8 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request) {
 		store = s.lstmStore
 	case "rnn":
 		store = s.rnnStore
+	case "layernorm":
+		store = s.layernormStore
 	case "mixer":
 		store = s.mixerStore
 	}
