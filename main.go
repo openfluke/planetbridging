@@ -43,6 +43,7 @@ func runHost() {
 	embeddingReports := flag.String("embedding-reports", defaultEmbeddingReportsDir(), "embedding JSON reports dir")
 	rmsnormReports := flag.String("rmsnorm-reports", defaultRMSNormReportsDir(), "rmsnorm JSON reports dir")
 	swigluReports := flag.String("swiglu-reports", defaultSwiGLUReportsDir(), "swiglu JSON reports dir")
+	residualReports := flag.String("residual-reports", defaultResidualReportsDir(), "residual JSON reports dir")
 	mixerReports := flag.String("mixer-reports", defaultMixerReportsDir(), "mixer JSON reports dir")
 	flag.Parse()
 
@@ -90,14 +91,18 @@ func runHost() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	residualStore, err := host.NewStore(*residualReports)
+	if err != nil {
+		log.Fatal(err)
+	}
 	mixerStore, err := host.NewStore(*mixerReports)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	srv := host.NewServer(
-		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, embeddingStore, rmsnormStore, swigluStore, mixerStore,
-		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultEmbeddingModelsDir(), defaultRMSNormModelsDir(), defaultSwiGLUModelsDir(), defaultMixerModelsDir(),
+		denseStore, cnn1Store, cnn2Store, cnn3Store, mhaStore, lstmStore, rnnStore, layernormStore, embeddingStore, rmsnormStore, swigluStore, residualStore, mixerStore,
+		defaultDenseModelsDir(), defaultCNN1ModelsDir(), defaultCNN2ModelsDir(), defaultCNN3ModelsDir(), defaultMHAModelsDir(), defaultLSTMModelsDir(), defaultRNNModelsDir(), defaultLayerNormModelsDir(), defaultEmbeddingModelsDir(), defaultRMSNormModelsDir(), defaultSwiGLUModelsDir(), defaultResidualModelsDir(), defaultMixerModelsDir(),
 	)
 	log.Printf("planetbridging host listening on %s", *addr)
 	log.Printf("Compare UI → http://localhost%s/", *addr)
@@ -151,6 +156,10 @@ func defaultSwiGLUReportsDir() string {
 	return bedrockPath("swiglu", "reports")
 }
 
+func defaultResidualReportsDir() string {
+	return bedrockPath("residual", "reports")
+}
+
 func defaultMixerReportsDir() string {
 	return bedrockPath("mixer", "reports")
 }
@@ -197,6 +206,10 @@ func defaultRMSNormModelsDir() string {
 
 func defaultSwiGLUModelsDir() string {
 	return bedrockPath("swiglu", "models")
+}
+
+func defaultResidualModelsDir() string {
+	return bedrockPath("residual", "models")
 }
 
 func defaultMixerModelsDir() string {

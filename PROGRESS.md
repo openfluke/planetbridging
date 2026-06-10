@@ -6,7 +6,7 @@ Update this file when a planet/step/layer type moves status. The compare UI at h
 
 > **Planet Bridging v0.4.0** — planets → Loom **partial** (original 7 + LayerNorm + Mixer). **v0.5.0** = all standard Loom layer bedrocks passing. **v1.0** = Loom → other engines. **v1.x–2.0** = file import, niche layers, gaps. See [`README.md`](./README.md#version-roadmap-how-we-count-halves).
 >
-> **Scope today:** **Dense**, **CNN1**, **CNN2**, **CNN3**, **MHA**, **LSTM**, **RNN**, **LayerNorm**, **Embedding**, **RMSNorm**, **SwiGLU**, and **Mixer** bedrocks are live in compare-host. **Residual** is **not wired** yet — needs a full bedrock like `python/dense/`.
+> **Scope today:** All standard layer bedrocks are live in compare-host — **Dense**, **CNN1–3**, **MHA**, **LSTM**, **RNN**, **LayerNorm**, **Embedding**, **RMSNorm**, **SwiGLU**, **Residual**, and **Mixer**. **v0.5.0 layer bedrocks complete**; next up is **Mixer v2** (full stack).
 
 ---
 
@@ -42,7 +42,7 @@ native → onnx → safetensors → loom entity   ❌
 | Path | Status | Notes |
 |------|--------|-------|
 | native → export (on disk) | ✅ dense bedrock | Proves save/reload did not corrupt weights |
-| native → loom / entity (layer stream) | ✅ dense, cnn1–3, mha, lstm, rnn, layernorm, embedding, rmsnorm, swiglu, mixer | Python reads **live in-memory** weights; Go builds `.stream.entity` |
+| native → loom / entity (layer stream) | ✅ all standard bedrocks (dense → residual) | Python reads **live in-memory** weights; Go builds `.stream.entity` |
 | onnx file → loom entity | ⬜ | No Go importer wired in compare-host |
 | safetensors file → loom entity | ⬜ | No Go importer wired in compare-host (`.safetensors.entity` files on disk are experiments, not reported) |
 | loom entity → export | ⬜ | Export back to planets not started |
@@ -68,6 +68,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 | **Embedding** | ✅ `python/embedding/` · 4 models × 3 planets | ✅ numpy reference forward | ✅ `POST /api/v1/loom/stream/embedding` | ✅ embedding tab | 🟡 POC |
 | **RMSNorm** | ✅ `python/rmsnorm/` · 4 models × 3 planets | ✅ numpy reference forward | ✅ `POST /api/v1/loom/stream/rmsnorm` | ✅ rmsnorm tab | 🟡 POC |
 | **SwiGLU** | ✅ `python/swiglu/` · 4 models × 3 planets | ✅ numpy reference forward | ✅ `POST /api/v1/loom/stream/swiglu` | ✅ swiglu tab | 🟡 POC |
+| **Residual** | ✅ `python/residual/` · 4 models × 3 planets | ✅ numpy reference forward | ✅ `POST /api/v1/loom/stream/residual` | ✅ residual tab | 🟡 POC |
 | **Mixer** | ✅ `python/mixer/` · 1 model × 3 planets | ✅ pytorch/tf/jax (7-type stack) | ✅ `POST /api/v1/loom/stream/mixer` | ✅ mixer tab | 🟡 POC |
 
 ### Toward v0.5.0 (planets → Loom complete)
@@ -75,7 +76,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 | Loom layer | Bedrock dir | Go bridge | Compare UI | Notes |
 |------------|-------------|-----------|------------|-------|
 | **SwiGLU** | ✅ `python/swiglu/` | ✅ | ✅ | **0.5.0** |
-| **Residual** | `python/residual/` | ⬜ | ⬜ | **0.5.0** |
+| **Residual** | ✅ `python/residual/` | ✅ | ✅ | **0.5.0** |
 | **Mixer (full)** | `python/mixer/` | 🟡 | ✅ | Upgrade stack when above land |
 
 **Later (v1.x–2.0):** ConvTranspose 1/2/3, Softmax, Parallel, Sequential, KMeans, …
@@ -93,7 +94,7 @@ We bridge **one Loom volumetric layer type at a time**. Dense bedrock is step 1.
 9. ~~**Embedding**~~ — ✅ done (2026-06-11) — 24/24 loom EXACT
 10. ~~**RMSNorm**~~ — ✅ done (2026-06-11) — 24/24 loom PASS
 11. ~~**SwiGLU**~~ — ✅ done (2026-06-11) — 24/24 loom PASS
-12. **Residual** — ⬜ target **0.5.0**
+12. ~~**Residual**~~ — ✅ done (2026-06-11) — 24/24 loom PASS
 13. **Mixer v2** — ⬜ all bridged layer types in one stack — target **0.5.0**
 
 ---
@@ -205,6 +206,24 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 **Scope (v1):** gate/up/down MLP with SiLU gate, Loom weight pack `gateW|upW|downW|gateB|upB|downB`. `epochs: 0` — init weights, infer on shared `x_test`, stream to Go.
 
 **Models:** `swiglu_4_8_4`, `swiglu_8_16_4`, `swiglu_4_16_4`, `swiglu_8_8_4` (seq_len=4).
+
+---
+
+### Residual — ✅ v1 bedrock
+
+**Bedrock:** `python/residual/` · fixture `residual_bedrock_v1` · 4 models · pytorch / tensorflow / jax · paired **`x_main` + `x_skip`** `[N, seq, dim]` fixtures.
+
+**Run:** `go run .` then `./python/residual/run_residual.sh` · UI tab: http://localhost:9876/?tab=residual
+
+| Planet | Export | Loom stream | Status |
+|--------|--------|-------------|--------|
+| PyTorch | — (reference forward) | ✅ | ✅ 4/4 PASS |
+| TensorFlow | — (reference forward) | ✅ | ✅ 4/4 PASS |
+| JAX | — (reference forward) | ✅ | ✅ 4/4 PASS |
+
+**Scope (v1):** weightless residual add — `output = main + skip`. No training; infer on shared paired test inputs, stream layer metadata to Go.
+
+**Models:** `residual_4`, `residual_8`, `residual_16`, `residual_32` (seq_len=4).
 
 ---
 
@@ -344,7 +363,7 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 
 **Hard parts (addressed in v1):** Q/K/V/O weight packing order; causal + RoPE must match `poly.MHAForwardPolymorphic`; RoPE in-place bugs in planet forwards (read values before write); per-sample Loom infer for compare.
 
-**Still deferred:** GQA/MQA, Q/K norm, bidirectional attention, export graphs, **Residual** wiring for full transformer parity.
+**Still deferred:** GQA/MQA, Q/K norm, bidirectional attention, export graphs, **Mixer v2** full-stack parity.
 
 ---
 
@@ -374,7 +393,7 @@ Each section is the **same checklist** dense is finishing now. Nothing here exis
 |------------|--------------|
 | **SwiGLU** | FFN block inside transformers; bridge after MHA + Dense |
 | **Embedding** | Integer token input + lookup table; different fixture shape |
-| **Residual** | Topology wiring, not standalone planet op |
+| **Residual** | ✅ standalone bedrock — `output = main + skip`, no weights |
 
 ---
 
