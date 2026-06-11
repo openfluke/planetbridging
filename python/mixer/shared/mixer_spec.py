@@ -1,9 +1,16 @@
 """Python constants matching bridge/mixer_spec.go."""
 
-MODEL_ID = "mixer_all_v1"
+MODEL_ID_V1 = "mixer_all_v1"
+MODEL_ID_V2 = "mixer_all_v2"
 FIXTURE_VERSION = "mixer_bedrock_v1"
-LAYER_COUNT = 10
+LAYER_COUNT_V1 = 10
+LAYER_COUNT_V2 = 16
 OUTPUT_DIM = 8
+
+EMBED_VOCAB = 16
+EMBED_DIM = 4
+EMBED_SEQ = 2
+SWIGLU_INTER = 8
 
 VOLUME_C = 1
 VOLUME_D = 2

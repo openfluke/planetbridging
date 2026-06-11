@@ -50,12 +50,13 @@ func denseBiasesFromLayer(sl LayerStream, layerIdx int) ([]float32, bool) {
 	return b, true
 }
 
-// BuildNetworkFromMixerStream builds the fixed 10-layer mixer stack.
+// BuildNetworkFromMixerStream builds a mixer stack (v1: 10 layers, v2: 16 layers).
 func BuildNetworkFromMixerStream(req MixerStreamRequest) (*poly.VolumetricNetwork, DenseBiases, error) {
-	if len(req.Layers) != MixerLayerCount {
-		return nil, nil, fmt.Errorf("mixer stream: want %d layers, got %d", MixerLayerCount, len(req.Layers))
+	want := MixerLayerCountForModel(req.ModelID)
+	if len(req.Layers) != want {
+		return nil, nil, fmt.Errorf("mixer stream: want %d layers for %s, got %d", want, req.ModelID, len(req.Layers))
 	}
-	n := poly.NewVolumetricNetwork(1, 1, 1, MixerLayerCount)
+	n := poly.NewVolumetricNetwork(1, 1, 1, want)
 	biases := make(DenseBiases)
 
 	for i, raw := range req.Layers {
@@ -129,6 +130,46 @@ func BuildNetworkFromMixerStream(req MixerStreamRequest) (*poly.VolumetricNetwor
 			if err := buildLSTMLayer(sl, n, i); err != nil {
 				return nil, nil, err
 			}
+		case "embedding":
+			var sl EmbeddingLayerStream
+			if err := json.Unmarshal(raw, &sl); err != nil {
+				return nil, nil, err
+			}
+			if err := buildEmbeddingLayer(sl, n, i); err != nil {
+				return nil, nil, err
+			}
+		case "layernorm":
+			var sl LayerNormLayerStream
+			if err := json.Unmarshal(raw, &sl); err != nil {
+				return nil, nil, err
+			}
+			if err := buildLayerNormLayer(sl, n, i); err != nil {
+				return nil, nil, err
+			}
+		case "rmsnorm":
+			var sl RMSNormLayerStream
+			if err := json.Unmarshal(raw, &sl); err != nil {
+				return nil, nil, err
+			}
+			if err := buildRMSNormLayer(sl, n, i); err != nil {
+				return nil, nil, err
+			}
+		case "swiglu":
+			var sl SwiGLULayerStream
+			if err := json.Unmarshal(raw, &sl); err != nil {
+				return nil, nil, err
+			}
+			if err := buildSwiGLULayer(sl, n, i); err != nil {
+				return nil, nil, err
+			}
+		case "residual":
+			var sl ResidualLayerStream
+			if err := json.Unmarshal(raw, &sl); err != nil {
+				return nil, nil, err
+			}
+			if err := buildResidualLayer(sl, n, i); err != nil {
+				return nil, nil, err
+			}
 		default:
 			return nil, nil, fmt.Errorf("mixer layer %d: unknown kind %q", i, head.Kind)
 		}
@@ -151,7 +192,7 @@ func StreamMixerToEntity(req MixerStreamRequest, modelsDir string, fx *MixerFixt
 	if outDim == 0 {
 		outDim = MixerOutputDim
 	}
-	outs := InferMixerStack(net, biases, fx.XTest, outDim)
+	outs := InferMixerStack(net, biases, fx.XTest, fx.TokenTest, outDim)
 	return &StreamResult{
 		EntityPath:  entityPath,
 		Outputs:     outs,

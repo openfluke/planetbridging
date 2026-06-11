@@ -20,7 +20,13 @@ def _arr(a: np.ndarray | None) -> list[float] | None:
     return np.asarray(a, dtype=np.float64).tolist()
 
 
-def layers_json_from_weights(weights: dict[str, np.ndarray]) -> list[dict[str, Any]]:
+def layers_json_from_weights(weights: dict[str, np.ndarray], model_id: str = ms.MODEL_ID_V1) -> list[dict[str, Any]]:
+    if model_id == ms.MODEL_ID_V2:
+        return layers_json_from_weights_v2(weights)
+    return _layers_json_v1(weights)
+
+
+def _layers_json_v1(weights: dict[str, np.ndarray]) -> list[dict[str, Any]]:
     return [
         {
             "kind": "cnn3",
@@ -133,6 +139,54 @@ def layers_json_from_weights(weights: dict[str, np.ndarray]) -> list[dict[str, A
             "weights": _arr(weights["dense4_w"]),
             "bias": _arr(weights.get("dense4_b")),
         },
+    ]
+
+
+def layers_json_from_weights_v2(weights: dict[str, np.ndarray]) -> list[dict[str, Any]]:
+    ln_w = np.concatenate([weights["layernorm_gamma"].reshape(-1), weights["layernorm_beta"].reshape(-1)])
+    swiglu_packed = np.concatenate([
+        weights["swiglu_gate_w"].reshape(-1),
+        weights["swiglu_up_w"].reshape(-1),
+        weights["swiglu_down_w"].reshape(-1),
+        weights["swiglu_gate_b"].reshape(-1),
+        weights["swiglu_up_b"].reshape(-1),
+        weights["swiglu_down_b"].reshape(-1),
+    ])
+    base = _layers_json_v1(weights)[:6]
+    v1_tail = _layers_json_v1(weights)[6:]
+    return base + [
+        {
+            "kind": "embedding",
+            "index": 6,
+            "vocab_size": ms.EMBED_VOCAB,
+            "embedding_dim": ms.EMBED_DIM,
+            "weights": _arr(np.asarray(weights["embed_table"]).reshape(-1)),
+        },
+        {
+            "kind": "layernorm",
+            "index": 7,
+            "dim": ms.EMBED_DIM,
+            "weights": _arr(ln_w),
+        },
+        {**v1_tail[0], "index": 8},
+        {"kind": "residual", "index": 9, "dim": ms.EMBED_DIM},
+        {
+            "kind": "rmsnorm",
+            "index": 10,
+            "dim": ms.EMBED_DIM,
+            "weights": _arr(weights["rmsnorm_gamma"]),
+        },
+        {
+            "kind": "swiglu",
+            "index": 11,
+            "input_dim": ms.EMBED_DIM,
+            "intermediate_dim": ms.SWIGLU_INTER,
+            "weights": _arr(swiglu_packed),
+        },
+        {"kind": "residual", "index": 12, "dim": ms.EMBED_DIM},
+        {**v1_tail[1], "index": 13},
+        {**v1_tail[2], "index": 14},
+        {**v1_tail[3], "index": 15},
     ]
 
 

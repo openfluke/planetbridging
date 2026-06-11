@@ -377,7 +377,7 @@ func (s *Server) buildDashboard(tab string) (Dashboard, error) {
 	mixerFixture := FixtureInfo{
 		Version: "mixer_bedrock_v1",
 		Seed:    42,
-		Note:    "All-layers mixer bedrock — CNN3→Dense→CNN2→Dense→CNN1→Dense→MHA→RNN→LSTM→Dense, planets: pytorch · tensorflow · jax.",
+		Note:    "Mixer bedrock — v1 (10 layers, 7 types) + v2 (16 layers, all 12 types). Planets: pytorch · tensorflow · jax.",
 	}
 	if mixer.FixtureVersion != "" {
 		mixerFixture.Version = mixer.FixtureVersion

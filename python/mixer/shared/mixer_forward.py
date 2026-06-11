@@ -55,6 +55,10 @@ def _load_sibling_forward(bedrock: str, module: str) -> Any:
 _lstm_fwd = _load_sibling_forward("lstm", "lstm_forward")
 _rnn_fwd = _load_sibling_forward("rnn", "rnn_forward")
 _mha_fwd = _load_sibling_forward("mha", "mha_forward")
+_ln_fwd = _load_sibling_forward("layernorm", "layernorm_forward")
+_emb_fwd = _load_sibling_forward("embedding", "embedding_forward")
+_rms_fwd = _load_sibling_forward("rmsnorm", "rmsnorm_forward")
+_swiglu_fwd = _load_sibling_forward("swiglu", "swiglu_forward")
 
 
 def load_mha_torch_forward() -> Any:
@@ -292,3 +296,111 @@ def loom_mixer_forward_batch(
 ) -> np.ndarray:
     """[N, 1, 2, 2, 2] → [N, output_dim]."""
     return loom_mixer_forward(x, weights, output_dim=output_dim)
+
+
+def _v1_prefix(x: np.ndarray, weights: dict[str, np.ndarray]) -> np.ndarray:
+    """CNN3→Dense→CNN2→Dense→CNN1→Dense through spatial spine; returns [N, seq, d_model]."""
+    t = _cnn3_forward(
+        x,
+        weights=weights["cnn3"],
+        in_c=ms.VOLUME_C,
+        filters=ms.CNN3_FILTERS,
+        k=ms.CNN3_KERNEL,
+    )
+    t = _flatten_leading(t)
+    t = _dense_linear(t, weights["dense1_w"], weights.get("dense1_b"), "linear")
+    t = t.reshape(t.shape[0], 1, ms.CNN2_H, ms.CNN2_W)
+    t = _cnn2_forward(t, weights=weights["cnn2"], in_c=1, filters=ms.CNN2_FILTERS, k=ms.CNN2_KERNEL)
+    t = _flatten_leading(t)
+    t = _dense_linear(t, weights["dense2_w"], weights.get("dense2_b"), "relu")
+    t = t.reshape(t.shape[0], 1, ms.CNN1_LEN)
+    t = _cnn1_forward(t, weights=weights["cnn1"], in_c=1, filters=ms.CNN1_FILTERS, k=ms.CNN1_KERNEL)
+    t = _flatten_leading(t)
+    t = _dense_linear(t, weights["dense3_w"], weights.get("dense3_b"), "linear")
+    return t.reshape(t.shape[0], ms.MHA_SEQ, ms.MHA_D_MODEL)
+
+
+def loom_mixer_v2_forward(
+    x: np.ndarray,
+    token_ids: np.ndarray,
+    weights: dict[str, np.ndarray],
+    output_dim: int | None = None,
+) -> np.ndarray:
+    """Full 16-layer stack: all 12 Loom types."""
+    x = np.asarray(x, dtype=np.float64)
+    if x.ndim == 4:
+        x = x[np.newaxis, ...]
+    out_dim = output_dim or ms.OUTPUT_DIM
+    _ = _v1_prefix(x, weights)  # dense3 spine (embedding uses token ids)
+
+    n = x.shape[0]
+    seq, dim = ms.EMBED_SEQ, ms.EMBED_DIM
+    t = _emb_fwd.loom_embedding_forward(token_ids, table=weights["embed_table"])
+    t = t.reshape(n, seq, dim)
+
+    t = _ln_fwd.loom_layernorm_forward(
+        t,
+        gamma=weights["layernorm_gamma"],
+        beta=weights["layernorm_beta"],
+    ).reshape(n, seq, dim)
+    skip_attn = t.copy()
+
+    q_dim = ms.MHA_HEADS * ms.MHA_HEAD_DIM
+    d_model = ms.MHA_D_MODEL
+    t = _mha_fwd.loom_mha_forward_batch(
+        t,
+        q_w=np.asarray(weights["mha_q_w"], dtype=np.float64).reshape(q_dim, d_model),
+        q_b=weights.get("mha_q_b"),
+        k_w=np.asarray(weights["mha_k_w"], dtype=np.float64).reshape(q_dim, d_model),
+        k_b=weights.get("mha_k_b"),
+        v_w=np.asarray(weights["mha_v_w"], dtype=np.float64).reshape(q_dim, d_model),
+        v_b=weights.get("mha_v_b"),
+        o_w=np.asarray(weights["mha_o_w"], dtype=np.float64).reshape(d_model, q_dim),
+        o_b=weights.get("mha_o_b"),
+        num_heads=ms.MHA_HEADS,
+        head_dim=ms.MHA_HEAD_DIM,
+    )
+    t = t + skip_attn
+
+    t = _rms_fwd.loom_rmsnorm_forward(t, gamma=weights["rmsnorm_gamma"]).reshape(n, seq, dim)
+    skip_mlp = t.copy()
+
+    t = _swiglu_fwd.loom_swiglu_forward(
+        t,
+        gate_w=weights["swiglu_gate_w"],
+        up_w=weights["swiglu_up_w"],
+        down_w=weights["swiglu_down_w"],
+        gate_b=weights["swiglu_gate_b"],
+        up_b=weights["swiglu_up_b"],
+        down_b=weights["swiglu_down_b"],
+    ).reshape(n, seq, dim)
+
+    t = t + skip_mlp
+
+    t = _rnn_fwd.loom_rnn_forward_batch(
+        t,
+        weights=weights["rnn"],
+        input_size=ms.RECURRENT_IN,
+        hidden_size=ms.RECURRENT_HID,
+    )
+    t = _lstm_fwd.loom_lstm_forward_batch(
+        t,
+        i_weights=weights["lstm_i"],
+        f_weights=weights["lstm_f"],
+        g_weights=weights["lstm_g"],
+        o_weights=weights["lstm_o"],
+        input_size=ms.RECURRENT_IN,
+        hidden_size=ms.RECURRENT_HID,
+    )
+    t = _flatten_leading(t)
+    t = _dense_linear(t, weights["dense4_w"], weights.get("dense4_b"), "linear")
+    return t[:, :out_dim]
+
+
+def loom_mixer_v2_forward_batch(
+    x: np.ndarray,
+    token_ids: np.ndarray,
+    weights: dict[str, np.ndarray],
+    output_dim: int | None = None,
+) -> np.ndarray:
+    return loom_mixer_v2_forward(x, token_ids, weights, output_dim=output_dim)

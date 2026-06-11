@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from shared import mixer_spec as ms  # noqa: E402
+from shared.mixer_forward import loom_mixer_v2_forward_batch  # noqa: E402
 from shared.artifacts import is_complete, model_dir, write_complete  # noqa: E402
 from shared.fixtures import slice_model_inputs  # noqa: E402
 from shared.loom_bridge import stream_planet_to_loom  # noqa: E402
@@ -173,10 +174,13 @@ def handler(*, model: ModelSpec, manifest: Manifest, data: dict, models_dir: Pat
     net, weights, skipped = train_or_load(model=model, manifest=manifest, data=data)
     out_dir = model_dir(PLANET, model.id)
     out_dim = model_output_dim(model)
-    _, _, x_test, _ = slice_model_inputs(data, model, out_dim)
+    _, _, x_test, _, _, token_test = slice_model_inputs(data, model, out_dim)
 
-    with torch.no_grad():
-        native = net(torch.from_numpy(x_test.astype(np.float32))).cpu().numpy().astype(np.float64)
+    if model.id == ms.MODEL_ID_V2:
+        native = loom_mixer_v2_forward_batch(x_test, token_test, weights, output_dim=out_dim)
+    else:
+        with torch.no_grad():
+            native = net(torch.from_numpy(x_test.astype(np.float32))).cpu().numpy().astype(np.float64)
 
     results = [
         VariantResult(

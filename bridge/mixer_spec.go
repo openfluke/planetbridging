@@ -13,8 +13,14 @@ package bridge
 //   Dense head 8→8
 const (
 	MixerModelID       = "mixer_all_v1"
+	MixerModelIDV2     = "mixer_all_v2"
 	MixerFixtureVer    = "mixer_bedrock_v1"
 	MixerLayerCount    = 10
+	MixerLayerCountV2  = 16
+	MixerEmbedVocab    = 16
+	MixerEmbedDim      = 4
+	MixerEmbedSeq      = 2
+	MixerSwiGLUInter   = 8
 	MixerOutputDim     = 8
 	MixerVolumeC       = 1
 	MixerVolumeD       = 2
@@ -40,3 +46,28 @@ const (
 	MixerRecurrentIn   = 4
 	MixerRecurrentHid  = 4
 )
+
+// MixerLayerCountForModel returns expected layer count for a mixer model id.
+func MixerLayerCountForModel(modelID string) int {
+	if modelID == MixerModelIDV2 {
+		return MixerLayerCountV2
+	}
+	return MixerLayerCount
+}
+
+// IsMixerV2 reports whether modelID is the full 12-type stack.
+func IsMixerV2(modelID string) bool {
+	return modelID == MixerModelIDV2
+}
+
+// MixerPipelineDescription returns a one-line layer chain for PDF / compare logs.
+func MixerPipelineDescription(modelID string) string {
+	switch modelID {
+	case MixerModelIDV2:
+		return "CNN3→Dense→CNN2→Dense→CNN1→Dense→Embedding→LayerNorm→MHA→Residual→RMSNorm→SwiGLU→Residual→RNN→LSTM→Dense (16 layers, all 12 types)"
+	case MixerModelID:
+		return "CNN3→Dense→CNN2→Dense→CNN1→Dense→MHA→RNN→LSTM→Dense (10 layers, 7 types)"
+	default:
+		return ""
+	}
+}

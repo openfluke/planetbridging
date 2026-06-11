@@ -15,7 +15,7 @@ func TestInferMixerStackShape(t *testing.T) {
 		{{0.1, 0.2}, {0.3, 0.4}},
 		{{0.5, 0.6}, {0.7, 0.8}},
 	}}
-	out := InferMixerStack(net, biases, [][][][][]float64{sample}, MixerOutputDim)
+	out := InferMixerStack(net, biases, [][][][][]float64{sample}, nil, MixerOutputDim)
 	if len(out) != 1 || len(out[0]) != MixerOutputDim {
 		t.Fatalf("bad output shape: %#v", out)
 	}

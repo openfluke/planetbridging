@@ -55,7 +55,9 @@ def ensure_fixtures(manifest: Manifest | None = None) -> dict[str, np.ndarray]:
     path = fixture_path(manifest)
     if path.exists():
         data = np.load(path)
-        return {k: data[k] for k in data.files}
+        if "token_ids_test" in data.files:
+            return {k: data[k] for k in data.files}
+        path.unlink()
 
     rng = np.random.default_rng(manifest.seed)
     n_train, n_test = manifest.train_samples, manifest.test_samples
@@ -69,25 +71,60 @@ def ensure_fixtures(manifest: Manifest | None = None) -> dict[str, np.ndarray]:
     y_train = _targets(x_train, out_width)
     y_test = _targets(x_test, out_width)
 
-    np.savez_compressed(path, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
-    return {"x_train": x_train, "y_train": y_train, "x_test": x_test, "y_test": y_test}
+    token_train = _make_token_ids(x_scalar[:n_train], seq_len=2, vocab=16, rng=rng)
+    token_test = _make_token_ids(x_scalar[n_train:], seq_len=2, vocab=16, rng=rng)
+
+    np.savez_compressed(
+        path,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        y_test=y_test,
+        token_ids_train=token_train,
+        token_ids_test=token_test,
+    )
+    return {
+        "x_train": x_train,
+        "y_train": y_train,
+        "x_test": x_test,
+        "y_test": y_test,
+        "token_ids_train": token_train,
+        "token_ids_test": token_test,
+    }
+
+
+def _make_token_ids(x_scalar: np.ndarray, seq_len: int, vocab: int, rng: np.random.Generator) -> np.ndarray:
+    n = x_scalar.shape[0]
+    out = np.zeros((n, seq_len), dtype=np.float64)
+    for i in range(n):
+        phase = float(x_scalar[i, 0])
+        for t in range(seq_len):
+            out[i, t] = float(int(abs(phase * 1000 + t * 7 + i) % vocab))
+        out[i] += rng.integers(0, vocab, size=seq_len) * 0  # keep deterministic
+    return out
 
 
 def slice_model_inputs(
     data: dict[str, np.ndarray],
     model: ModelSpec | None = None,
     output_dim: int | None = None,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     _ = model
     c, d, h, w = VOLUME_C, VOLUME_D, VOLUME_H, VOLUME_W
     x_train = data["x_train"][:, :c, :d, :h, :w]
     x_test = data["x_test"][:, :c, :d, :h, :w]
     y_train = data["y_train"]
     y_test = data["y_test"]
+    token_train = data.get("token_ids_train")
+    token_test = data.get("token_ids_test")
+    if token_train is None:
+        token_train = np.zeros((x_train.shape[0], 2), dtype=np.float64)
+    if token_test is None:
+        token_test = np.zeros((x_test.shape[0], 2), dtype=np.float64)
     if output_dim is not None:
         y_train = y_train[:, :output_dim]
         y_test = y_test[:, :output_dim]
-    return x_train, y_train, x_test, y_test
+    return x_train, y_train, x_test, y_test, token_train, token_test
 
 
 def volume_element_count() -> int:

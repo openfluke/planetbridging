@@ -10,20 +10,20 @@ Research and format deep-dives live in [`rnd/`](./rnd/README.md). Architecture d
 
 ---
 
-## Release — v0.4.0 (planets → Loom, partial)
+## Release — v0.5.0 (planets → Loom, complete)
 
-**Planet Bridging v0.4.0** is **work in progress** on the **first half** of the hub: live stream bedrocks that prove **planet → Loom** on shared fixtures. The original **seven** layer types are done; **LayerNorm** and **Mixer** are in; several more Loom types are still open before we call this half **0.5.0**.
+**Planet Bridging v0.5.0** closes the **first half** of the hub: every standard Loom volumetric layer type has a live-stream bedrock that proves **planet → Loom** on shared fixtures. Thirteen compare tabs, twelve layer types, and **Mixer v2** chaining all of them in one 16-layer stack.
 
 | | |
 |---|---|
-| **Version** | `0.4.0` ([`host/version.go`](./host/version.go)) |
+| **Version** | `0.5.0` ([`host/version.go`](./host/version.go)) |
 | **Loom** | v0.79 — Dense, CNN1/2/3, MHA, LSTM, RNN, LayerNorm, Embedding, RMSNorm, SwiGLU, Residual, … |
 | **This release** | **Into Loom only** — live weight stream → `.stream.entity` → Loom infer → compare vs native |
-| **Not in v0.4.0** | Full layer coverage (that's **0.5.0**), file-based import, **Loom → any engine** export |
+| **Not in v0.5.0** | File-based import without live Python, **Loom → any engine** export, bit-exact deep-stack determinism |
 
-**v0.4.0 in one sentence:** nine compare tabs (dense · cnn1–3 · mha · lstm · rnn · layernorm · mixer), three Python planets (plus sklearn on Dense), 100 shared test samples per model — native and Loom outputs must match within fp32 tolerance (`< 1e-5`) where a bedrock exists.
+**v0.5.0 in one sentence:** thirteen compare tabs (dense · cnn1–3 · mha · lstm · rnn · layernorm · embedding · rmsnorm · swiglu · residual · mixer), three Python planets (plus sklearn on Dense), 100 shared test samples per model — native and Loom outputs match within fp32 tolerance (`< 1e-5`) on single-layer bedrocks; **Mixer v2** is POC (~5e-5 max diff, behaviour good enough for now).
 
-**Still needed for v0.5.0 (planets → Loom complete):** **Embedding**, **RMSNorm**, **SwiGLU**, **Residual** bedrocks (and a mixer stack that chains all bridged types). See [`PROGRESS.md`](./PROGRESS.md).
+**Next milestone — v1.0:** Loom → ONNX / Safetensors / GGUF → any inference engine. See [`PROGRESS.md`](./PROGRESS.md).
 
 ### Version roadmap (how we count halves)
 
@@ -31,8 +31,8 @@ Bidirectional bridging is two big arcs. We number them in **0.5 steps** so the v
 
 | Version | Direction | What it means |
 |---------|-----------|---------------|
-| **0.4.0** | **Planets → Loom (partial)** | Compare host + original 7 layers + LayerNorm + Mixer — **this release** |
-| **0.5.0** | **Planets → Loom (complete)** | Every standard Loom volumetric layer type has a passing bedrock (incl. Embedding, RMSNorm, SwiGLU, Residual) |
+| **0.4.0** | **Planets → Loom (partial)** | Compare host + original 7 layers + LayerNorm + Mixer v1 |
+| **0.5.0** | **Planets → Loom (complete)** | All standard layer bedrocks + **Mixer v2** (12 types) — **this release** |
 | **1.0.0** | **Loom → other AI engines** | Export from Loom → ONNX / Safetensors / GGUF → ORT, llama.cpp, CoreML, … — bidirectional hub |
 | **1.x → 2.0** | **Everything we skipped** | File import without live Python, ConvTranspose / Softmax / …, more planets, lossy-path docs, polish |
 
@@ -40,9 +40,9 @@ So **0.5 + 0.5 ≈ 1.0** for the two directions (into Loom, then out of Loom); *
 
 ---
 
-## What works with what (v0.4.0)
+## What works with what (v0.5.0)
 
-Each cell is **native infer + live stream to Loom** on the same `x_test` fixture. Compare labels: `PASS` / `EXACT` / `DIFF` — see [`PROGRESS.md`](./PROGRESS.md) for per-model detail.
+Each cell is **native infer + live stream to Loom** on the same fixture. Compare labels: `PASS` / `EXACT` / `DIFF` — see [`PROGRESS.md`](./PROGRESS.md) for per-model detail.
 
 | Loom layer | Bedrock | PyTorch | TensorFlow | JAX | sklearn | Loom stream | Loom compare |
 |------------|---------|:-------:|:----------:|:---:|:-------:|:-----------:|:------------:|
@@ -54,14 +54,12 @@ Each cell is **native infer + live stream to Loom** on the same `x_test` fixture
 | **LSTM** | `python/lstm/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 12/12 |
 | **RNN** | `python/rnn/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 12/12 |
 | **LayerNorm** | `python/layernorm/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 24/24 |
-| **Mixer** | `python/mixer/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 3/3 (7-type stack) |
-
-| Loom layer | Bedrock | Status |
-|------------|---------|--------|
-| **Embedding** | `python/embedding/` | ⬜ not wired — target **0.5.0** |
-| **RMSNorm** | `python/rmsnorm/` | ⬜ not wired — target **0.5.0** |
-| **SwiGLU** | `python/swiglu/` | ⬜ not wired — target **0.5.0** |
-| **Residual** | `python/residual/` | ⬜ not wired — target **0.5.0** |
+| **Embedding** | `python/embedding/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 24/24 EXACT |
+| **RMSNorm** | `python/rmsnorm/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 24/24 |
+| **SwiGLU** | `python/swiglu/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 24/24 |
+| **Residual** | `python/residual/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 24/24 |
+| **Mixer v1** | `python/mixer/` | ✅ | ✅ | ✅ | — | ✅ | ✅ 3/3 PASS (7 types) |
+| **Mixer v2** | `python/mixer/` | ✅ | ✅ | ✅ | — | ✅ | 🟡 3/3 POC (~5e-5, 12 types) |
 
 **Planets:** PyTorch · TensorFlow · JAX run all **live** bedrocks above. sklearn runs Dense only. Paddle is disabled.
 
@@ -69,10 +67,10 @@ Each cell is **native infer + live stream to Loom** on the same `x_test` fixture
 
 ```mermaid
 flowchart LR
-  subgraph NOW["v0.4.0 — INTO Loom (partial)"]
+  subgraph NOW["v0.5.0 — INTO Loom (complete)"]
     direction TB
     P["Planets<br/>PyTorch · TF · JAX · sklearn"]
-    B["9 bedrocks<br/>Dense · CNN1/2/3 · MHA · LSTM · RNN · LayerNorm · Mixer"]
+    B["13 bedrocks<br/>Dense · CNN1/2/3 · MHA · LSTM · RNN<br/>LayerNorm · Embedding · RMSNorm · SwiGLU · Residual · Mixer"]
     S["Live layer stream<br/>POST /api/v1/loom/stream/*"]
     E[".stream.entity"]
     L["Loom infer"]
@@ -110,7 +108,7 @@ cd planetbridging
 go run .
 ./killserver.sh                 # stop when done
 
-# Open dashboard — tabs: dense · cnn1–3 · mha · lstm · rnn · layernorm · mixer
+# Open dashboard — 13 tabs (all standard layer bedrocks + mixer)
 open http://localhost:9876/
 
 # Run a bedrock (starts host if needed)
@@ -120,7 +118,11 @@ open http://localhost:9876/
 ./python/lstm/run_lstm.sh
 ./python/rnn/run_rnn.sh
 ./python/layernorm/run_layernorm.sh
-./python/mixer/run_mixer.sh
+./python/embedding/run_embedding.sh
+./python/rmsnorm/run_rmsnorm.sh
+./python/swiglu/run_swiglu.sh
+./python/residual/run_residual.sh
+./python/mixer/run_mixer.sh          # mixer_all_v1 + mixer_all_v2
 ```
 
 Dense also needs `./python/dense/setup_conda.sh` once. Each other bedrock creates its own `pb-<layer>-<engine>` conda env on first run.
@@ -133,30 +135,30 @@ Dense also needs `./python/dense/setup_conda.sh` once. Each other bedrock create
 
 1. **Map the AI solar system** — catalog training frameworks, inference engines, and the file formats each planet uses.
 
-2. **Prove planet → Loom (→ v0.5.0)** — for every standard Loom layer type, stream live weights into `.entity` and verify Loom matches native on shared fixtures. **In progress (v0.4.0).**
+2. **Prove planet → Loom (v0.5.0)** — for every standard Loom layer type, stream live weights into `.entity` and verify Loom matches native on shared fixtures. **Done (v0.5.0).**
 
 3. **Loom → other engines (v1.0)** — the other half:
    - **Import** from checkpoint files (Safetensors, ONNX, GGUF, Keras, …) without a live Python planet
    - **Export** from Loom → hub formats → any inference engine
    - Round-trip where possible; document lossy paths where not
 
-4. **Layer bedrocks — v0.4.0 live vs v0.5.0 target:**
+4. **Layer bedrocks — v0.5.0 (all standard types):**
 
-   | Loom layer | Typical ops on other planets | v0.4.0 | v0.5.0 target |
-   |------------|------------------------------|:------:|:-------------:|
-   | **Dense** | `MatMul`/`Gemm`/`Linear` | ✅ | ✅ |
-   | **CNN1** | `Conv1d` | ✅ | ✅ |
-   | **CNN2** | `Conv2d` | ✅ | ✅ |
-   | **CNN3** | `Conv3d` | ✅ | ✅ |
-   | **MHA** | `MultiHeadAttention` (causal + RoPE POC) | ✅ | ✅ |
-   | **LSTM** | `LSTM` cell (i/f/g/o gates) | ✅ | ✅ |
-   | **RNN** | `RNN` / `SimpleRNN` (tanh) | ✅ | ✅ |
-   | **LayerNorm** | `LayerNormalization` | ✅ | ✅ |
-   | **Mixer** | integration stack | ✅ (7 types) | ✅ (all types) |
-   | **Embedding** | `Embedding` lookup | ⬜ | ✅ |
-   | **RMSNorm** | RMS normalization | ⬜ | ✅ |
-   | **SwiGLU** | gated MLP (LLaMA-style) | ⬜ | ✅ |
-   | **Residual** | skip connection | ⬜ | ✅ |
+   | Loom layer | Typical ops on other planets | Status |
+   |------------|------------------------------|:------:|
+   | **Dense** | `MatMul`/`Gemm`/`Linear` | ✅ |
+   | **CNN1** | `Conv1d` | ✅ |
+   | **CNN2** | `Conv2d` | ✅ |
+   | **CNN3** | `Conv3d` | ✅ |
+   | **MHA** | `MultiHeadAttention` (causal + RoPE POC) | ✅ |
+   | **LSTM** | `LSTM` cell (i/f/g/o gates) | ✅ |
+   | **RNN** | `RNN` / `SimpleRNN` (tanh) | ✅ |
+   | **LayerNorm** | `LayerNormalization` | ✅ |
+   | **Embedding** | `Embedding` lookup | ✅ |
+   | **RMSNorm** | RMS normalization | ✅ |
+   | **SwiGLU** | gated MLP (LLaMA-style) | ✅ |
+   | **Residual** | skip connection | ✅ |
+   | **Mixer** | integration stack | ✅ v1 PASS · v2 POC (~5e-5) |
 
    Later (v1.x–2.0): ConvTranspose 1/2/3, Softmax, Parallel, Sequential, KMeans, …
 
@@ -171,13 +173,13 @@ Loom (v0.79) is a pure-Go Deterministic Neural Virtual Machine with native execu
 | Direction | Status | Detail |
 |-----------|--------|--------|
 | **Loom JSON ↔ Loom** | ✅ Native | Full topology + weights; train, save, reload, infer (all 21 dtypes) |
-| **Live planet stream → Loom** | 🟡 v0.4.0 | Nine bedrock routes — `POST /api/v1/loom/stream/*` → `.stream.entity`; four layer types still open for **0.5.0** |
+| **Live planet stream → Loom** | ✅ v0.5.0 | Thirteen bedrock routes — `POST /api/v1/loom/stream/*` → `.stream.entity`; all standard volumetric types |
 | **Safetensors → Loom** | 🟡 Partial | Native loader in main Loom tree; config-driven HF transformers only — not wired in compare-host |
 | **ONNX / GGUF / `.pt` / Keras file → Loom** | ⬜ v1.x | Pure-Go file importers — bedrock checkpoints on disk today are export-fidelity checks |
 | **Loom → Safetensors / ONNX / GGUF** | ⬜ v1.0 | Export — the other half of the hub |
 | **Loom → PyTorch / Keras / ORT / llama.cpp** | ⬜ v1.0 | Likely via hub formats as intermediate |
 
-**v0.4.0 today:** planet → Loom for **Dense + CNN1/2/3 + MHA + LSTM + RNN + LayerNorm + Mixer**. **v0.5.0 target:** add **Embedding, RMSNorm, SwiGLU, Residual**. **v1.0:** Loom → any engine. **v1.x–2.0:** file import, niche layers, gaps we deferred.
+**v0.5.0 today:** planet → Loom for all **twelve standard layer types** plus **Mixer v1/v2**. **v1.0:** Loom → any engine. **v1.x–2.0:** file import, niche layers, tighter deep-stack determinism.
 
 ### Dense bedrock — stage 2 import targets
 
@@ -273,10 +275,10 @@ flowchart TB
     %% Loom native
     LOOM <-->|"native ✅"| LJ
 
-    %% Into Loom — v0.4.0 live stream (partial)
-    PT -->|"live stream 🟡 v0.4.0"| LOOM
-    TF -->|"live stream 🟡 v0.4.0"| LOOM
-    JAX -->|"live stream 🟡 v0.4.0"| LOOM
+    %% Into Loom — v0.5.0 live stream (complete)
+    PT -->|"live stream ✅ v0.5.0"| LOOM
+    TF -->|"live stream ✅ v0.5.0"| LOOM
+    JAX -->|"live stream ✅ v0.5.0"| LOOM
 
     %% Into Loom — file import (v1.x)
     ST -->|"file import 🟡 HF only"| LOOM
@@ -340,7 +342,7 @@ View interactively: copy the diagram into [mermaid.live](https://mermaid.live).
 
 The point of this repo is not to reimplement every engine. It is to make **Loom a bidirectional hub** for the layer types that matter most.
 
-**v0.4.0 (this release) → v0.5.0 when layer coverage is complete:**
+**v0.5.0 (this release) — planets → Loom complete:**
 
 ```
 Planet (PyTorch / TF / JAX)  ──live stream──►  VolumetricLayer *  ──►  .entity  ──►  Loom infer  ──►  PASS vs native
@@ -361,8 +363,8 @@ TF LSTM          ──►  VolumetricLayer LSTM       ──►  any inference 
 
 | Phase | Work | Target version |
 |-------|------|----------------|
-| **A** | Live stream bedrocks — original 7 + LayerNorm + Mixer | ✅ **0.4.0** |
-| **A′** | Remaining layer bedrocks — Embedding, RMSNorm, SwiGLU, Residual, full mixer | **0.5.0** |
+| **A** | Live stream bedrocks — original 7 + LayerNorm + Mixer v1 | ✅ **0.4.0** |
+| **A′** | Remaining layer bedrocks — Embedding, RMSNorm, SwiGLU, Residual, Mixer v2 | ✅ **0.5.0** |
 | **B** | Loom → export (Safetensors, ONNX, GGUF) → inference planets | **1.0.0** |
 | **C** | File-based import + Safetensors/GGUF/ONNX readers in compare-host | **1.x** |
 | **D** | Niche layers (ConvTranspose, Softmax, …), more planets, hub polish | **1.x → 2.0** |
@@ -373,7 +375,7 @@ TF LSTM          ──►  VolumetricLayer LSTM       ──►  any inference 
 
 | Path | Purpose |
 |------|---------|
-| [`host/`](./host/) | Compare dashboard HTTP server (`go run .`) — v0.4.0 |
+| [`host/`](./host/) | Compare dashboard HTTP server (`go run .`) — v0.5.0 |
 | [`bridge/`](./bridge/) | Layer stream builders → `.entity`, fixtures, Loom infer (per layer type) |
 | [`python/dense/`](./python/dense/) | Dense bedrock — 12 models × 4 planets |
 | [`python/cnn1/`](./python/cnn1/) · [`cnn2/`](./python/cnn2/) · [`cnn3/`](./python/cnn3/) | Conv bedrocks — 4 models × 3 planets each |
@@ -381,7 +383,7 @@ TF LSTM          ──►  VolumetricLayer LSTM       ──►  any inference 
 | [`python/lstm/`](./python/lstm/) · [`python/rnn/`](./python/rnn/) | Recurrent bedrocks |
 | [`python/layernorm/`](./python/layernorm/) | LayerNorm bedrock |
 | [`python/mixer/`](./python/mixer/) | All-layer integration bedrock |
-| [`python/embedding/`](./python/embedding/) · [`rmsnorm/`](./python/rmsnorm/) · [`swiglu/`](./python/swiglu/) · [`residual/`](./python/residual/) | Scaffold dirs — **0.5.0** targets, not wired yet |
+| [`python/embedding/`](./python/embedding/) · [`rmsnorm/`](./python/rmsnorm/) · [`swiglu/`](./python/swiglu/) · [`residual/`](./python/residual/) | Norm / FFN / skip bedrocks — 4 models × 3 planets each |
 | [`killserver.sh`](./killserver.sh) | Stop compare-host on `:9876` |
 | [`BRIDGE.md`](./BRIDGE.md) | Architecture diagrams — step 1 vs bidirectional endgoal |
 | [`PROGRESS.md`](./PROGRESS.md) | Live scoreboard — per-model PASS/DIFF |

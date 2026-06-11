@@ -5,6 +5,8 @@ import (
 	"math"
 	"sort"
 	"strings"
+
+	"github.com/openfluke/planetbridging/bridge"
 )
 
 // FP32PassTolerance treats tiny float drift (ONNX, Loom entity infer) as pass in the UI.
@@ -287,6 +289,11 @@ func FormatBedrockComparisonText(bedrock string, summary DenseComparisonSummary)
 	b.Printf("fixture=%s reports=%d\n\n", summary.FixtureVersion, summary.ReportCount)
 	for _, m := range summary.Models {
 		b.Printf("model %s\n", m.ModelID)
+		if bedrock == "mixer" {
+			if desc := bridge.MixerPipelineDescription(m.ModelID); desc != "" {
+				b.Printf("  pipeline: %s\n", desc)
+			}
+		}
 		for _, p := range m.Pipelines {
 			b.Printf("  planet %s\n", p.Planet)
 			for _, s := range p.Steps {

@@ -4,9 +4,9 @@ import (
 	"github.com/openfluke/loom/poly"
 )
 
-// InferMixerStack runs the full mixer_all_v1 pipeline in Loom.
-func InferMixerStack(net *poly.VolumetricNetwork, biases DenseBiases, xTest [][][][][]float64, outputDim int) [][]float64 {
-	if len(xTest) == 0 || len(net.Layers) != MixerLayerCount {
+// InferMixerStack runs the mixer pipeline in Loom (v1 or v2).
+func InferMixerStack(net *poly.VolumetricNetwork, biases DenseBiases, xTest [][][][][]float64, tokenTest [][]float64, outputDim int) [][]float64 {
+	if len(xTest) == 0 || len(net.Layers) == 0 {
 		return nil
 	}
 	if outputDim == 0 {
@@ -14,12 +14,16 @@ func InferMixerStack(net *poly.VolumetricNetwork, biases DenseBiases, xTest [][]
 	}
 	out := make([][]float64, len(xTest))
 	for si, sample := range xTest {
-		out[si] = inferMixerSample(net, biases, sample, outputDim)
+		var tokens []float64
+		if si < len(tokenTest) {
+			tokens = tokenTest[si]
+		}
+		out[si] = inferMixerSample(net, biases, sample, tokens, outputDim)
 	}
 	return out
 }
 
-func inferMixerSample(net *poly.VolumetricNetwork, biases DenseBiases, sample [][][][]float64, outputDim int) []float64 {
+func inferMixerSample(net *poly.VolumetricNetwork, biases DenseBiases, sample [][][][]float64, tokens []float64, outputDim int) []float64 {
 	batch := 1
 	c, d, h, w := MixerVolumeC, MixerVolumeD, MixerVolumeH, MixerVolumeW
 	data := make([]float32, c*d*h*w)
@@ -36,6 +40,8 @@ func inferMixerSample(net *poly.VolumetricNetwork, biases DenseBiases, sample []
 		}
 	}
 	t := poly.NewTensorFromSlice(data, batch, c, d, h, w)
+
+	var skipAttn, skipMLP *poly.Tensor[float32]
 
 	for li := range net.Layers {
 		layer := &net.Layers[li]
@@ -56,9 +62,35 @@ func inferMixerSample(net *poly.VolumetricNetwork, biases DenseBiases, sample []
 			t = reshapeToCNN1(t, batch, 1, MixerCNN1Len)
 			_, t = poly.CNN1ForwardPolymorphic(layer, t)
 			t = flattenTensor(t)
+		case poly.LayerEmbedding:
+			seq := MixerEmbedSeq
+			tokenData := make([]float32, seq)
+			for i := 0; i < seq && i < len(tokens); i++ {
+				tokenData[i] = float32(tokens[i])
+			}
+			t = poly.NewTensorFromSlice(tokenData, seq)
+			_, t = poly.EmbeddingForwardPolymorphic(layer, t)
+			t = reshapeToSeq(flattenTensor(t), batch, MixerEmbedSeq, MixerEmbedDim)
+		case poly.LayerLayerNorm:
+			_, t = poly.LayerNormForwardPolymorphic(layer, t)
+			skipAttn = t.Clone()
 		case poly.LayerMultiHeadAttention:
-			t = reshapeToSeq(t, batch, MixerMHASeq, MixerMHADModel)
+			t = reshapeToSeq(flattenTensor(t), batch, MixerMHASeq, MixerMHADModel)
 			_, t = poly.MHAForwardPolymorphic(layer, t)
+		case poly.LayerResidual:
+			if skipAttn != nil {
+				_, t = poly.ResidualForwardPolymorphic(layer, t, skipAttn)
+				skipAttn = nil
+			} else if skipMLP != nil {
+				_, t = poly.ResidualForwardPolymorphic(layer, t, skipMLP)
+				skipMLP = nil
+			}
+		case poly.LayerRMSNorm:
+			_, t = poly.RMSNormForwardPolymorphic(layer, t)
+			skipMLP = t.Clone()
+		case poly.LayerSwiGLU:
+			_, t = poly.SwiGLUForwardPolymorphic(layer, t)
+			t = reshapeToSeq(flattenTensor(t), batch, MixerRecurrentSeq, MixerRecurrentIn)
 		case poly.LayerRNN:
 			_, t = poly.RNNForwardPolymorphic(layer, t)
 		case poly.LayerLSTM:

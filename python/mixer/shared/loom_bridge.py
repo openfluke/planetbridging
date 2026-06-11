@@ -19,7 +19,7 @@ def stream_planet_to_loom(
     weights: dict[str, np.ndarray],
 ) -> VariantResult | None:
     out_dim = model_output_dim(model)
-    layers = layer_streams_from_weights(weights)
+    layers = layer_streams_from_weights(weights, model)
     resp = post_mixer_stream(
         host=host,
         planet=planet,

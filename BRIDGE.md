@@ -2,7 +2,7 @@
 
 **End goal:** **bidirectional** — planets ↔ hub formats ↔ **Loom** (import and export).
 
-**Step 1 (now):** **one direction only** → planets train in Python, checkpoints hit the bridge, **everything lands in Loom**. Export back to planets is dashed / not built.
+**Step 1 (v0.5.0 — done):** **one direction only** → planets train in Python (or init weights for norm/FFN bedrocks), live layer stream hits the bridge, **all standard volumetric types land in Loom**. Export back to planets is dashed / not built (v1.0).
 
 ---
 
