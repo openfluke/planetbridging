@@ -166,20 +166,21 @@ Dense also needs `./python/dense/setup_conda.sh` once. Each other bedrock create
 
 ## Loom at the center — current state
 
-Loom (v0.79) is a pure-Go Deterministic Neural Virtual Machine with native execution for Dense, CNN1/2/3, MHA, LSTM, RNN, and more across **21 DTypes**, with bit-packed **`model.json`** persistence.
+Loom (v0.80) is a pure-Go Deterministic Neural Virtual Machine with native execution for Dense, CNN1/2/3, MHA, LSTM, RNN, and more across **21 DTypes**, with **`.entity`** native checkpoints and **JSON** debug persistence.
 
 **Dtype reality check:** Python planets train in **FP32** (sklearn: FP64). Bedrock compares **float outputs at one precision** — not 21-type parity across engines. See [`python/dense/README.md`](./python/dense/README.md#numerical-types--planets-vs-loom-fml-tier).
 
 | Direction | Status | Detail |
 |-----------|--------|--------|
 | **Loom JSON ↔ Loom** | ✅ Native | Full topology + weights; train, save, reload, infer (all 21 dtypes) |
+| **Loom ENTITY ↔ Loom** | ✅ Native | `.entity` binary checkpoints (v0.80+); Lucy [7]/[8] validated |
 | **Live planet stream → Loom** | ✅ v0.5.0 | Thirteen bedrock routes — `POST /api/v1/loom/stream/*` → `.stream.entity`; all standard volumetric types |
 | **Safetensors → Loom** | 🟡 Partial | Native loader in main Loom tree; config-driven HF transformers only — not wired in compare-host |
 | **ONNX / GGUF / `.pt` / Keras file → Loom** | ⬜ v1.x | Pure-Go file importers — bedrock checkpoints on disk today are export-fidelity checks |
 | **Loom → Safetensors / ONNX / GGUF** | ⬜ v1.0 | Export — the other half of the hub |
 | **Loom → PyTorch / Keras / ORT / llama.cpp** | ⬜ v1.0 | Likely via hub formats as intermediate |
 
-**v0.5.0 today:** planet → Loom for all **twelve standard layer types** plus **Mixer v1/v2**. **v1.0:** Loom → any engine. **v1.x–2.0:** file import, niche layers, tighter deep-stack determinism.
+**Release order:** **Loom v0.80** ships first (ENTITY + modern WebGPU). **Planet Bridging v0.5.0** publishes after that tag. **v1.0:** Loom → any engine. **v1.x–2.0:** file import, niche layers, tighter deep-stack determinism.
 
 ### Dense bedrock — stage 2 import targets
 
