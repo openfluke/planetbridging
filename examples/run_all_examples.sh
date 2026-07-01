@@ -2,9 +2,7 @@
 # Run every planetbridging example; save stdout+stderr to examples/outputs/*.txt
 #
 #   ./examples/run_all_examples.sh
-#   ./examples/run_all_examples.sh --quick   # 06_showcase uses --quick
-#
-# Transcripts are gitignored (see examples/outputs/ in .gitignore).
+#   ./examples/run_all_examples.sh --quick
 
 set -uo pipefail
 
@@ -24,22 +22,35 @@ mkdir -p "$OUT_DIR"
 PYTHON=""
 for cand in "${PYTHON:-}" python python3; do
   [[ -z "$cand" ]] && continue
-  if command -v "$cand" >/dev/null 2>&1 && "$cand" -c "import numpy" >/dev/null 2>&1; then
+  if command -v "$cand" >/dev/null 2>&1 && "$cand" -c "import numpy, planetbridging" 2>/dev/null; then
+    PYTHON="$cand"
+    break
+  fi
+  if command -v "$cand" >/dev/null 2>&1 && "$cand" -c "import numpy" 2>/dev/null; then
     PYTHON="$cand"
     break
   fi
 done
 if [[ -z "$PYTHON" ]]; then
-  echo "[run_all_examples] no Python with numpy found."
-  echo "  pip install -e \".[pytorch]\""
+  echo "[run_all_examples] install first:  pip install planetbridging[pytorch]"
   exit 1
 fi
 
-LOOM_STREAM="$REPO_ROOT/bin/loom-stream"
-if [[ ! -x "$LOOM_STREAM" ]]; then
-  echo "[run_all_examples] building loom-stream …"
-  (cd "$REPO_ROOT" && go build -o bin/loom-stream ./cmd/loom-stream/)
-fi
+ensure_loom_stream() {
+  if "$PYTHON" -c "from planetbridging._binary import find_loom_stream; find_loom_stream()" 2>/dev/null; then
+    return 0
+  fi
+  if [[ -f "$REPO_ROOT/go.mod" ]] && [[ -d "$REPO_ROOT/cmd/loom-stream" ]]; then
+    echo "[run_all_examples] building loom-stream (dev checkout) …"
+    (cd "$REPO_ROOT" && go build -o bin/loom-stream ./cmd/loom-stream/)
+    return 0
+  fi
+  echo "[run_all_examples] loom-stream not found."
+  echo "  pip install --force-reinstall planetbridging"
+  echo "  or: go build -o bin/loom-stream ./cmd/loom-stream/"
+  exit 1
+}
+ensure_loom_stream
 
 STAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 : >"$COMBINED"
@@ -70,7 +81,7 @@ run_example() {
     echo "script:   $script_slug.py"
     echo "started:  $STAMP"
     echo "command:  $PYTHON $script $*"
-    echo "repo:     $REPO_ROOT"
+    echo "cwd:      $REPO_ROOT"
     echo "────────────────────────────────────────────────────────────────"
     echo ""
   } >"$outfile"
@@ -83,7 +94,9 @@ run_example() {
   set +e
   (
     cd "$REPO_ROOT"
-  export PYTHONPATH="${REPO_ROOT}/src${PYTHONPATH:+:$PYTHONPATH}"
+    if [[ -d "$REPO_ROOT/src/planetbridging" ]]; then
+      export PYTHONPATH="${REPO_ROOT}/src${PYTHONPATH:+:$PYTHONPATH}"
+    fi
     "$PYTHON" "$script" "$@" 2>&1
   ) | tee -a "$outfile" | tee -a "$COMBINED"
   local status=${PIPESTATUS[0]}
@@ -113,7 +126,7 @@ _run() {
 echo "[run_all_examples] writing to $OUT_DIR/"
 log_combined "planetbridging — run all examples"
 log_combined "started: $STAMP"
-log_combined "repo:    $REPO_ROOT"
+log_combined "cwd:     $REPO_ROOT"
 log_combined "python:  $($PYTHON --version 2>&1)"
 log_combined "quick:   $QUICK"
 
@@ -136,6 +149,7 @@ echo "────────────────────────�
 echo "  combined:  $COMBINED"
 for f in "$OUT_DIR"/*.txt; do
   [[ "$(basename "$f")" == "run_all.txt" ]] && continue
+  [[ -f "$f" ]] || continue
   echo "  $(basename "$f")"
 done
 

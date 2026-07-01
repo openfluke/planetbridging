@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "planetbridging"
-version = "0.7.0"
+version = "0.7.2"
 description = "Stream live AI engine weights into Loom .entity checkpoints — no HTTP required"
 readme = "README.md"
 license = "MIT"
@@ -28,7 +28,8 @@ tensorflow = ["tensorflow"]
 jax = ["jax", "flax"]
 sklearn = ["scikit-learn"]
 dev = ["pytest>=7"]
-all = ["planetbridging[pytorch,tensorflow,jax,sklearn,dev]"]
+welvet = ["welvet"]
+all = ["planetbridging[pytorch,tensorflow,jax,sklearn,welvet,dev]"]
 
 [project.urls]
 Homepage = "https://github.com/openfluke/planetbridging"
@@ -36,8 +37,23 @@ Homepage = "https://github.com/openfluke/planetbridging"
 [tool.hatch.build.targets.wheel]
 packages = ["src/planetbridging"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"bundle/_data" = "planetbridging/_data"
+"bundle/_bin" = "planetbridging/_bin"
+"examples" = "planetbridging/examples"
+
 [tool.hatch.build.targets.sdist]
-include = ["src/planetbridging", "pyproject.toml", "README.md", "examples", "tests"]
+# bundle/ is gitignored; staged before publish via scripts/prepare_pypi_bundle.sh
+ignore-vcs = true
+include = [
+  "src/planetbridging",
+  "bundle",
+  "pyproject.toml",
+  "README.md",
+  "LICENSE",
+  "examples",
+  "tests",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

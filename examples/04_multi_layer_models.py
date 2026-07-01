@@ -11,7 +11,6 @@ from _helpers import print_result, require_loom_stream
 require_loom_stream()
 
 from planetbridging import engines  # noqa: E402
-from planetbridging._binary import repo_root  # noqa: E402
 from planetbridging.bedrocks import STREAM_MODEL_IDS  # noqa: E402
 
 MIXER_POC_TOLERANCE = 5e-5
@@ -42,7 +41,7 @@ def main() -> None:
 
     for bedrock, expected_layers, model_id in MULTI_LAYER:
         assert STREAM_MODEL_IDS[bedrock] == model_id
-        result = engines.stream(bedrock, "pytorch", model_id=model_id, root=repo_root())
+        result = engines.stream(bedrock, "pytorch", model_id=model_id)
         print_result(result, title=f"{bedrock} — {expected_layers} layers")
         if result.layer_count != expected_layers:
             failures.append(f"{bedrock}: expected {expected_layers} layers, got {result.layer_count}")

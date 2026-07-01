@@ -20,7 +20,7 @@ import sys
 import textwrap
 from pathlib import Path
 
-from _helpers import ROOT, require_loom_stream
+from _helpers import output_dir, print_result, require_loom_stream
 
 BINARY = require_loom_stream()
 
@@ -50,7 +50,7 @@ from planetbridging.welvet_infer import (  # noqa: E402
 )
 
 MIXER_POC_TOLERANCE = 5e-5
-OUT = ROOT / ".planetbridging" / "showcase"
+OUT = output_dir("showcase")
 
 # Numpy smoke runners use single-layer native forwards; 2-layer CNN / mixer v2
 # may DIFF here while engines.stream (live POC) is authoritative.

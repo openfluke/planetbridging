@@ -11,7 +11,6 @@ from _helpers import require_loom_stream
 require_loom_stream()
 
 from planetbridging import engines  # noqa: E402
-from planetbridging._binary import repo_root  # noqa: E402
 from planetbridging.bedrocks import BEDROCK_IDS, STREAM_LAYER_COUNTS  # noqa: E402
 
 MIXER_POC_TOLERANCE = 5e-5
@@ -19,7 +18,7 @@ MIXER_POC_TOLERANCE = 5e-5
 
 def main() -> None:
     print("Streaming all 13 bedrock layer types (PyTorch) …\n")
-    results = engines.stream_all_bedrocks("pytorch", root=repo_root())
+    results = engines.stream_all_bedrocks("pytorch")
 
     ok = 0
     for r in results:

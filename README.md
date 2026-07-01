@@ -104,14 +104,16 @@ View interactively: [mermaid.live](https://mermaid.live).
 Stream live weights into `.entity` from the command line or Python:
 
 ```bash
-cd planetbridging
-go build -o bin/loom-stream ./cmd/loom-stream/
-pip install -e ".[pytorch]"
+pip install planetbridging[pytorch] welvet
 
-python examples/01_hello_stream.py          # one layer type
-python examples/02_all_layer_types.py       # all 13 bedrocks
-python examples/04_multi_layer_models.py    # 4-layer MLP, Mixer v2, …
+python -c "
+from planetbridging import engines
+r = engines.stream('mha', 'pytorch')
+print(r.native_vs_loom, r.entity_path)
+"
 ```
+
+Developers working from a git clone can still use `go build` + `pip install -e ".[pytorch]"`.
 
 See [`examples/README.md`](./examples/README.md) for the full list. Core API:
 
@@ -119,6 +121,37 @@ See [`examples/README.md`](./examples/README.md) for the full list. Core API:
 from planetbridging import engines
 result = engines.stream("mha", "pytorch")
 print(result.native_vs_loom, result.entity_path)
+```
+
+### Publish to PyPI
+
+Bump `version` in `pyproject.toml`, then:
+
+```bash
+./publish.sh    # bundles all platforms + bedrock data, builds wheel, uploads
+```
+
+`prepare_pypi_bundle.sh` cross-compiles **linux_amd64**, **windows_amd64**, and **macos_arm64** `loom-stream` (welvet-style). On macOS, install once:
+
+```bash
+brew tap messense/macos-cross-toolchains
+brew install x86_64-unknown-linux-gnu mingw-w64
+```
+
+CI alternative: build natively per runner, then `./scripts/copy_binaries_to_bundle.sh dist/loom-stream`.
+
+The wheel includes **everything needed** for `engines.stream()` on all three desktop targets.
+
+### End-user install (pip only)
+
+```bash
+pip install planetbridging[pytorch] welvet
+
+python -c "
+from planetbridging import engines
+r = engines.stream('layernorm', 'pytorch')
+print(r.native_vs_loom, r.entity_path)
+"
 ```
 
 ---

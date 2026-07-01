@@ -10,19 +10,21 @@ import stat
 import subprocess
 from pathlib import Path
 
+from ._paths import bundled_loom_stream, bundled_platforms, package_dir, platform_tag, repo_root
 
-def repo_root() -> Path:
-    """Planetbridging repo root (../../ from src/planetbridging/)."""
-    return Path(__file__).resolve().parents[2]
+__all__ = ["repo_root", "default_binary_path", "find_loom_stream", "run_loom_stream"]
 
 
 def default_binary_path() -> Path:
+    bundled = bundled_loom_stream()
+    if bundled is not None:
+        return bundled
     name = "loom-stream.exe" if platform.system() == "Windows" else "loom-stream"
     return repo_root() / "bin" / name
 
 
 def find_loom_stream(explicit: str | Path | None = None) -> Path:
-    """Resolve loom-stream: explicit → env → PATH → repo bin/."""
+    """Resolve loom-stream: explicit → env → bundled wheel → PATH → dev bin/."""
     if explicit is not None:
         path = Path(explicit).expanduser().resolve()
         if not path.is_file():
@@ -35,18 +37,29 @@ def find_loom_stream(explicit: str | Path | None = None) -> Path:
         if path.is_file():
             return path
 
+    bundled = bundled_loom_stream()
+    if bundled is not None:
+        return bundled
+
     which = shutil.which("loom-stream")
     if which:
         return Path(which)
 
-    candidate = default_binary_path()
-    if candidate.is_file():
-        return candidate
+    name = "loom-stream.exe" if platform.system() == "Windows" else "loom-stream"
+    dev_bin = repo_root() / "bin" / name
+    if dev_bin.is_file():
+        return dev_bin
 
+    tag = platform_tag()
+    platforms = ", ".join(bundled_platforms()) or "(none)"
     raise FileNotFoundError(
-        "loom-stream binary not found. Build from the planetbridging repo:\n"
-        "  go build -o bin/loom-stream ./cmd/loom-stream/\n"
-        "Or set PLANETBRIDGING_LOOM_STREAM=/path/to/loom-stream"
+        "loom-stream binary not found for this platform.\n"
+        f"  wanted: planetbridging/_bin/{tag}/{name}\n"
+        f"  bundled: {platforms}\n"
+        "  Options:\n"
+        "    pip install --force-reinstall planetbridging\n"
+        "    go build -o bin/loom-stream ./cmd/loom-stream/\n"
+        "    export PLANETBRIDGING_LOOM_STREAM=/path/to/loom-stream"
     )
 
 

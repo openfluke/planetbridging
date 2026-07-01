@@ -24,6 +24,11 @@ dist/
 .ruff_cache/
 .venv/
 venv/
+.publish-venv/
+
+# PyPI bundle staging (scripts/prepare_pypi_bundle.sh)
+bundle/
+dist/loom-stream/
 
 # Stream / smoke output from engines API, examples, and tests
 .planetbridging/

@@ -14,7 +14,6 @@ from _helpers import print_result, require_loom_stream
 require_loom_stream()
 
 from planetbridging import engines  # noqa: E402
-from planetbridging._binary import repo_root  # noqa: E402
 
 
 def main() -> None:
@@ -27,7 +26,7 @@ def main() -> None:
     print(f"Bedrock: {bedrock}")
     print(f"Engines: {', '.join(installed)}\n")
 
-    results = engines.stream_all_planets(bedrock, root=repo_root())
+    results = engines.stream_all_planets(bedrock)
     failures = []
     for r in results:
         print_result(r)

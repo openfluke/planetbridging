@@ -19,7 +19,6 @@ from _helpers import require_loom_stream
 require_loom_stream()
 
 from planetbridging import engines  # noqa: E402
-from planetbridging._binary import repo_root  # noqa: E402
 from planetbridging.welvet_infer import (  # noqa: E402
     WELVET_RELOAD_BEDROCKS,
     WELVET_RELOAD_SKIP,
@@ -38,7 +37,7 @@ def main() -> None:
         import_welvet()
     except ImportError as exc:
         print(exc)
-        print("\nInstall welvet:  pip install -e ../welvet/python")
+        print("\nInstall welvet:  pip install welvet")
         raise SystemExit(1) from exc
 
     print("Welvet ladder (native → loom-stream → welvet reload)\n")
@@ -53,7 +52,6 @@ def main() -> None:
         result = engines.stream(
             bedrock,
             "pytorch",
-            root=repo_root(),
             try_welvet=True,
         )
         n = len(result.welvet) if result.welvet is not None else len(result.native)

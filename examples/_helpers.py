@@ -1,29 +1,50 @@
-"""Shared setup for planetbridging examples."""
+"""Shared setup for planetbridging examples (pip install or git checkout)."""
 
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+EXAMPLES_DIR = Path(__file__).resolve().parent
+# Git checkout: planetbridging/ ; pip wheel: site-packages/planetbridging/
+PACKAGE_OR_REPO = EXAMPLES_DIR.parent
+
+
+def is_dev_checkout() -> bool:
+    """Running from a planetbridging git clone (not an installed wheel)."""
+    return (PACKAGE_OR_REPO / "src" / "planetbridging").is_dir() and (PACKAGE_OR_REPO / "go.mod").is_file()
 
 
 def ensure_imports() -> None:
-    """Allow running examples before `pip install -e .`."""
-    src = ROOT / "src"
+    """Editable dev install: prefer src/ before site-packages."""
+    if not is_dev_checkout():
+        return
+    src = PACKAGE_OR_REPO / "src"
     if src.is_dir() and str(src) not in sys.path:
         sys.path.insert(0, str(src))
 
 
+def output_dir(*parts: str) -> Path:
+    """Writable cache under cwd (never writes into site-packages)."""
+    base = Path.cwd() / ".planetbridging" / "examples"
+    path = base.joinpath(*parts) if parts else base
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def require_loom_stream() -> Path:
+    """Resolve loom-stream (bundled in pip wheel, or bin/ in dev checkout)."""
     ensure_imports()
-    from planetbridging._binary import default_binary_path, find_loom_stream
+    from planetbridging._binary import find_loom_stream
 
     try:
         return find_loom_stream()
     except FileNotFoundError as exc:
         print(exc)
-        print("\nBuild first:  go build -o bin/loom-stream ./cmd/loom-stream/")
+        if is_dev_checkout():
+            print("\nDev checkout:  go build -o bin/loom-stream ./cmd/loom-stream/")
+        else:
+            print("\nReinstall:  pip install --force-reinstall planetbridging")
         raise SystemExit(1) from exc
 
 

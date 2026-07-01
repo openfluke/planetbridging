@@ -14,14 +14,13 @@ from _helpers import print_result, require_loom_stream
 require_loom_stream()
 
 from planetbridging import engines  # noqa: E402
-from planetbridging._binary import repo_root  # noqa: E402
 
 
 def main() -> None:
     bedrock = (sys.argv[1] if len(sys.argv) > 1 else "dense").lower()
     print(f"Streaming {bedrock} (PyTorch) → loom-stream → .entity …")
 
-    result = engines.stream(bedrock, "pytorch", root=repo_root())
+    result = engines.stream(bedrock, "pytorch")
     print_result(result)
 
     if result.native_vs_loom not in ("PASS", "EXACT"):
