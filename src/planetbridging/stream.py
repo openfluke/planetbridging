@@ -13,6 +13,7 @@ from typing import Any, Sequence
 import numpy as np
 
 from ._binary import repo_root, run_loom_stream
+from ._fixtures import resolve_fixtures_dir
 from .compare import compare_outputs, diff_label
 from .layers.dense import DenseLayer
 
@@ -96,6 +97,9 @@ def stream_bedrock(
 
     root_path = Path(root) if root else repo_root()
     fv = fixture_version or str(payload.get("fixture_version", ""))
+    resolved_fixtures = fixtures_dir
+    if resolved_fixtures is None and fv:
+        resolved_fixtures = resolve_fixtures_dir(bedrock, root_path, fv)
     envelope: dict[str, Any] = {
         "bedrock": bedrock,
         "root": str(root_path),
@@ -104,8 +108,8 @@ def stream_bedrock(
         envelope["fixture_version"] = fv
     if models_dir is not None:
         envelope["models_dir"] = str(models_dir)
-    if fixtures_dir is not None:
-        envelope["fixtures_dir"] = str(fixtures_dir)
+    if resolved_fixtures is not None:
+        envelope["fixtures_dir"] = str(resolved_fixtures)
     if output_path is not None:
         envelope["output_path"] = str(output_path)
     if skip_infer:

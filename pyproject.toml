@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "planetbridging"
-version = "0.7.2"
+version = "0.7.3"
 description = "Stream live AI engine weights into Loom .entity checkpoints — no HTTP required"
 readme = "README.md"
 license = "MIT"

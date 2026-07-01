@@ -96,11 +96,9 @@ def _model_seed(manifest: dict, model_id: str) -> int:
 
 
 def _load_fixture_npz(root: Path, bedrock: str, fixture_version: str) -> dict[str, np.ndarray]:
-    path = root / "python" / bedrock / "fixtures" / f"{fixture_version}.npz"
-    if not path.is_file():
-        raise FileNotFoundError(path)
-    data = np.load(path)
-    return {k: data[k] for k in data.files}
+    from ._fixtures import load_fixture_arrays
+
+    return load_fixture_arrays(bedrock, root, fixture_version)
 
 
 def run_bedrock_smoke(

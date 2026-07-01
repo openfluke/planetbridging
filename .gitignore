@@ -32,6 +32,8 @@ dist/loom-stream/
 
 # Stream / smoke output from engines API, examples, and tests
 .planetbridging/
+.planetbridging-*/
+fixtures-cache/
 *.entity
 
 # Example transcripts (examples/run_all_examples.sh)
@@ -41,7 +43,7 @@ examples/outputs/
 logs/*.log
 python/**/*.log
 
-# POC bedrock artifacts — generated on first run per layer tab
+# POC bedrock artifacts — generated on first run per layer tab (also via pip fixture cache)
 python/*/models/
 python/*/reports/
 python/*/fixtures/

@@ -44,16 +44,17 @@ pick_python() {
 
 PYTHON="$(pick_python)" || { echo "numpy/python required"; exit 1; }
 
-echo "[prepare_pypi_bundle] ensuring bedrock fixtures …"
+echo "[prepare_pypi_bundle] ensuring dev-checkout fixtures (optional) …"
 export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
-"$PYTHON" "$ROOT/scripts/ensure_bedrock_fixtures.py"
+"$PYTHON" "$ROOT/scripts/ensure_bedrock_fixtures.py" 2>/dev/null || true
 
-echo "[prepare_pypi_bundle] staging python bedrocks → bundle/_data/python/"
+echo "[prepare_pypi_bundle] staging python bedrocks → bundle/_data/python/ (no npz — generated on first use)"
 rm -rf "$DATA_DIR/python"
 mkdir -p "$DATA_DIR"
 rsync -a \
   --exclude='models/' \
   --exclude='reports/' \
+  --exclude='fixtures/' \
   --exclude='__pycache__/' \
   --exclude='*.pyc' \
   --exclude='.DS_Store' \

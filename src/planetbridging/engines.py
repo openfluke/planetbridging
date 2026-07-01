@@ -130,17 +130,15 @@ def _welvet_fixture_inputs(
     max_samples: int = 5,
 ) -> tuple[np.ndarray | None, int | None, int | None]:
     from .bedrock_ladder import _fixture_inputs
-    from .bedrock_smoke import _load_bedrock_module, _load_fixture_npz
+    from .bedrock_smoke import _load_bedrock_module
+    from ._fixtures import load_fixture_arrays
 
     info = BEDROCKS[bedrock]
     manifest_mod = _load_bedrock_module(root, bedrock, "manifest")
     fixtures_mod = _load_bedrock_module(root, bedrock, "fixtures")
     manifest = manifest_mod.load_manifest()
     model = next(m for m in manifest.models if m.id == model_id)
-    if hasattr(fixtures_mod, "ensure_fixtures"):
-        data = fixtures_mod.ensure_fixtures(manifest)
-    else:
-        data = _load_fixture_npz(root, bedrock, info.fixture_version)
+    data = load_fixture_arrays(bedrock, root, info.fixture_version)
     out_dim = manifest_mod.model_output_dim(model)
     x_test, input_dim = _fixture_inputs(bedrock, root, model, manifest, fixtures_mod, data, out_dim)
     n = min(max_samples, len(x_test))

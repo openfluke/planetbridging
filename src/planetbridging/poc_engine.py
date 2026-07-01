@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any, Iterator
 
 from ._binary import repo_root
-from .bedrock_smoke import _bedrock_pkg, _load_bedrock_module, _load_fixture_npz
+from ._fixtures import load_fixture_arrays
+from .bedrock_smoke import _bedrock_pkg, _load_bedrock_module
 from .stream import stream_bedrock
 
 
@@ -152,11 +153,8 @@ def run_engine_handler(
     manifest_mod = _load_bedrock_module(root, bedrock, "manifest")
     fixtures_mod = _load_bedrock_module(root, bedrock, "fixtures")
     manifest = manifest_mod.load_manifest()
-    if hasattr(fixtures_mod, "ensure_fixtures"):
-        data = fixtures_mod.ensure_fixtures(manifest)
-    else:
-        fv = manifest.fixture_version
-        data = _load_fixture_npz(root, bedrock, fv)
+    fv = getattr(manifest, "fixture_version", None)
+    data = load_fixture_arrays(bedrock, root, fv)
 
     model = None
     if model_id:

@@ -9,8 +9,9 @@
 #   - PyPI API token in ~/.pypirc or TWINE_USERNAME/TWINE_PASSWORD env vars
 #   - go toolchain (bundles loom-stream for this platform into the wheel)
 #
-# The wheel ships the Python package, all bedrock POC data, fixtures, and a
-# platform-specific loom-stream binary. Users: pip install planetbridging[pytorch]
+# The wheel ships the Python package, bedrock POC code, multi-platform loom-stream
+# binaries, and examples. Fixture npz files are generated on first use into
+# ~/.planetbridging/fixtures/ (keeps the wheel under PyPI's 100MB limit).
 
 set -euo pipefail
 
@@ -135,9 +136,10 @@ fi
 
 echo "Uploading..."
 if [[ "$UPLOAD_TEST" -eq 1 ]]; then
-  "$PYTHON" -m twine upload --repository testpypi dist/*
+  "$PYTHON" -m twine upload --repository testpypi dist/*.whl
 else
-  "$PYTHON" -m twine upload dist/*
+  # Wheel only — sdist duplicates the bundle and can exceed PyPI 100MB limit.
+  "$PYTHON" -m twine upload dist/*.whl
 fi
 
 echo ""
