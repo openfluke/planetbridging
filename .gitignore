@@ -1,21 +1,45 @@
+# macOS
 .DS_Store
+**/.DS_Store
+**/._*
 
-# Go
+# Go — local binaries and test outputs
 /bin/
-/dist/
+/compare-host
 /planetbridging
-compare-host
+/loom-stream
 *.test
 *.out
 
-# Python bedrock artifacts (dense, cnn1, future layer bedrocks)
+# Python — planetbridging package (src/, tests/, examples/)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Stream / smoke output from engines API, examples, and tests
+.planetbridging/
+*.entity
+
+# Example transcripts (examples/run_all_examples.sh)
+examples/outputs/
+
+# Logs (compare-host and bedrock run scripts)
+logs/*.log
+python/**/*.log
+
+# POC bedrock artifacts — generated on first run per layer tab
 python/*/models/
 python/*/reports/
 python/*/fixtures/
-python/**/__pycache__/
-python/**/*.pyc
-python/**/.pytest_cache/
-python/**/*.log
 
 # Conda env export sidecars (created during env create)
 python/**/condaenv.*.requirements.txt

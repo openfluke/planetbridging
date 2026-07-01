@@ -46,3 +46,12 @@ models:
     width: 32
     layers:
       - {kind: cnn2, filters: 8, kernel_size: 32, stride: 1, padding: 0, activation: linear, bias: false}
+
+  # 2-layer Conv2d stack.
+  - id: conv2_8_4_2layer
+    input_channels: 1
+    height: 8
+    width: 8
+    layers:
+      - {kind: cnn2, filters: 4, kernel_size: 4, stride: 2, padding: 0, activation: relu, bias: false}
+      - {kind: cnn2, filters: 4, kernel_size: 3, stride: 1, padding: 0, activation: linear, bias: false}

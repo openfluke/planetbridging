@@ -99,7 +99,31 @@ View interactively: [mermaid.live](https://mermaid.live).
 
 ---
 
-## Quick start
+## Quick start — Python package (no HTTP)
+
+Stream live weights into `.entity` from the command line or Python:
+
+```bash
+cd planetbridging
+go build -o bin/loom-stream ./cmd/loom-stream/
+pip install -e ".[pytorch]"
+
+python examples/01_hello_stream.py          # one layer type
+python examples/02_all_layer_types.py       # all 13 bedrocks
+python examples/04_multi_layer_models.py    # 4-layer MLP, Mixer v2, …
+```
+
+See [`examples/README.md`](./examples/README.md) for the full list. Core API:
+
+```python
+from planetbridging import engines
+result = engines.stream("mha", "pytorch")
+print(result.native_vs_loom, result.entity_path)
+```
+
+---
+
+## Quick start — compare host (HTTP dashboard)
 
 ```bash
 cd planetbridging

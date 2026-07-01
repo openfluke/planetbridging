@@ -152,21 +152,24 @@ def handler(
 
     st_path = out_dir / "model.safetensors"
     if st_path.exists():
-        from safetensors.torch import load_file
-
-        reloaded = build_model(model)
-        reloaded.load_state_dict(load_file(st_path))
-        reloaded.eval()
-        results.append(
-            VariantResult(
-                planet=PLANET,
-                stage="export",
-                format="safetensors",
-                outputs=forward(reloaded, x_test),
-                artifact_paths=[str(st_path)],
-                train_skipped=True,
+        try:
+            from safetensors.torch import load_file
+        except ImportError as exc:
+            print(f"[pytorch] safetensors reload skipped for {model.id}: {exc}")
+        else:
+            reloaded = build_model(model)
+            reloaded.load_state_dict(load_file(st_path))
+            reloaded.eval()
+            results.append(
+                VariantResult(
+                    planet=PLANET,
+                    stage="export",
+                    format="safetensors",
+                    outputs=forward(reloaded, x_test),
+                    artifact_paths=[str(st_path)],
+                    train_skipped=True,
+                )
             )
-        )
 
     onnx_path = out_dir / "model.onnx"
     if onnx_path.exists():

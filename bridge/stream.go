@@ -3,6 +3,7 @@ package bridge
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 
 	"github.com/openfluke/loom/poly"
@@ -84,21 +85,44 @@ func BuildNetworkFromStream(req StreamRequest) (*poly.VolumetricNetwork, DenseBi
 	return n, biases, nil
 }
 
+// StreamEntityOptions controls entity output path and optional inference inputs.
+type StreamEntityOptions struct {
+	ModelsDir   string
+	OutputPath  string
+	Fixture     *Fixture
+	Inputs      [][]float64
+	SkipInfer   bool
+}
+
 // StreamToEntity builds the network layer-by-layer, saves .entity, runs Loom infer.
 func StreamToEntity(req StreamRequest, modelsDir string, fx *Fixture) (*StreamResult, error) {
+	return StreamToEntityWithOptions(req, StreamEntityOptions{
+		ModelsDir: modelsDir,
+		Fixture:   fx,
+	})
+}
+
+// StreamToEntityWithOptions saves .entity and optionally runs Loom infer on fixture or custom inputs.
+func StreamToEntityWithOptions(req StreamRequest, opts StreamEntityOptions) (*StreamResult, error) {
 	net, biases, err := BuildNetworkFromStream(req)
 	if err != nil {
 		return nil, err
 	}
 
-	entityPath, err := WriteEntityFromNetwork(modelsDir, req.Planet, req.ModelID, "stream", net, biases)
+	entityPath, err := writeDenseEntity(req, net, biases, opts)
 	if err != nil {
-		return nil, fmt.Errorf("entity save: %w", err)
+		return nil, err
 	}
 
 	lc, wb, _ := RoundTripEntity(entityPath)
-	xTest := SliceTestInputs(fx, req.InputDim)
-	outs := InferDenseMLP(net, biases, xTest)
+	var outs [][]float64
+	if !opts.SkipInfer {
+		xTest, err := resolveDenseInputs(req.InputDim, opts)
+		if err != nil {
+			return nil, err
+		}
+		outs = InferDenseMLP(net, biases, xTest)
+	}
 
 	return &StreamResult{
 		EntityPath:  entityPath,
@@ -106,6 +130,33 @@ func StreamToEntity(req StreamRequest, modelsDir string, fx *Fixture) (*StreamRe
 		LayerCount:  lc,
 		WeightBytes: wb,
 	}, nil
+}
+
+func writeDenseEntity(req StreamRequest, net *poly.VolumetricNetwork, biases DenseBiases, opts StreamEntityOptions) (string, error) {
+	if opts.OutputPath != "" {
+		if err := os.MkdirAll(filepath.Dir(opts.OutputPath), 0o755); err != nil {
+			return "", err
+		}
+		if err := SaveEntity(opts.OutputPath, net, biases); err != nil {
+			return "", fmt.Errorf("entity save: %w", err)
+		}
+		return opts.OutputPath, nil
+	}
+	path, err := WriteEntityFromNetwork(opts.ModelsDir, req.Planet, req.ModelID, "stream", net, biases)
+	if err != nil {
+		return "", fmt.Errorf("entity save: %w", err)
+	}
+	return path, nil
+}
+
+func resolveDenseInputs(inputDim int, opts StreamEntityOptions) ([][]float64, error) {
+	if len(opts.Inputs) > 0 {
+		return opts.Inputs, nil
+	}
+	if opts.Fixture == nil {
+		return nil, fmt.Errorf("stream: fixture or inputs required for inference")
+	}
+	return SliceTestInputs(opts.Fixture, inputDim), nil
 }
 
 // EntityPathForStream returns where streamed .entity files are written.

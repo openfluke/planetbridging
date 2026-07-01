@@ -42,3 +42,11 @@ models:
     seq_len: 32
     layers:
       - {kind: cnn1, filters: 8, kernel_size: 32, stride: 1, padding: 0, activation: relu, bias: false}
+
+  # 2-layer Conv1d stack (8 → 4 filters).
+  - id: conv1_32_8_4_2layer
+    input_channels: 1
+    seq_len: 32
+    layers:
+      - {kind: cnn1, filters: 8, kernel_size: 16, stride: 2, padding: 0, activation: relu, bias: false}
+      - {kind: cnn1, filters: 4, kernel_size: 8, stride: 1, padding: 0, activation: linear, bias: false}
